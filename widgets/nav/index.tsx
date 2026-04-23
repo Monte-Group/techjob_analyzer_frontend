@@ -5,11 +5,12 @@ import Link from "next/link";
 import { Arrow } from "@/shared/ui/Arrow";
 
 export default function Nav() {
-  const [hasToken, setHasToken] = useState<boolean | null>(null);
+  const [hasToken] = useState<boolean | null>(() =>
+    typeof window === "undefined" ? null : Boolean(localStorage.getItem("token"))
+  );
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    setHasToken(Boolean(localStorage.getItem("token")));
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
