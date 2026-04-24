@@ -162,7 +162,6 @@ export default function Dashboard() {
   const [salaryCalcExp, setSalaryCalcExp] = useState("");
   const [salaryCalcRegion, setSalaryCalcRegion] = useState("");
   const [salaryCalcResult, setSalaryCalcResult] = useState<SalaryCalcResult | null>(null);
-  const [salaryCalcTrend, setSalaryCalcTrend] = useState<{ delta: number; pct: number } | null>(null);
   const [salaryCalcLoading, setSalaryCalcLoading] = useState(false);
   const [salaryCalcError, setSalaryCalcError] = useState("");
 
@@ -439,24 +438,10 @@ export default function Dashboard() {
     setSalaryCalcLoading(true);
     setSalaryCalcError("");
     setSalaryCalcResult(null);
-    setSalaryCalcTrend(null);
     try {
-      const [result, trendData] = await Promise.all([
-        getSalaryCalc({ skill: salaryCalcSkill.trim(), experience: salaryCalcExp || undefined, region: salaryCalcRegion || undefined, source }),
-        getTrends(source, salaryCalcSkill.trim()),
-      ]);
-      if (!result) {
-        setSalaryCalcError("Нет данных по выбранным параметрам. Попробуй другой навык или убери фильтры.");
-      } else {
-        setSalaryCalcResult(result);
-        if (trendData.length >= 2) {
-          const last = trendData[trendData.length - 1]!;
-          const prev = trendData[trendData.length - 2]!;
-          const delta = last.count - prev.count;
-          const pct = prev.count > 0 ? Math.round((delta / prev.count) * 100) : 0;
-          setSalaryCalcTrend({ delta, pct });
-        }
-      }
+      const result = await getSalaryCalc({ skill: salaryCalcSkill.trim(), experience: salaryCalcExp || undefined, region: salaryCalcRegion || undefined, source });
+      if (!result) setSalaryCalcError("Нет данных по выбранным параметрам. Попробуй другой навык или убери фильтры.");
+      else setSalaryCalcResult(result);
     } catch {
       setSalaryCalcError("Ошибка при получении данных.");
     } finally {
@@ -1246,24 +1231,6 @@ export default function Dashboard() {
                         title="Зарплатный срез"
                         description={`По ${fmtInt(salaryCalcResult.sample_count)} вакансиям с указанной зарплатой`}
                       >
-                        {salaryCalcTrend && (
-                          <div className={`mb-4 flex items-center gap-2 rounded-[16px] px-4 py-3 text-sm font-medium ${
-                            salaryCalcTrend.delta > 0
-                              ? "bg-teal-50 text-teal-800"
-                              : salaryCalcTrend.delta < 0
-                                ? "bg-rose-50 text-rose-800"
-                                : "bg-stone-100 text-stone-600"
-                          }`}>
-                            <span className="text-base">
-                              {salaryCalcTrend.delta > 0 ? "↑" : salaryCalcTrend.delta < 0 ? "↓" : "→"}
-                            </span>
-                            <span>
-                              Спрос за последний месяц:{" "}
-                              <strong>{salaryCalcTrend.delta > 0 ? "+" : ""}{salaryCalcTrend.pct}%</strong>
-                              {" "}({salaryCalcTrend.delta > 0 ? "+" : ""}{salaryCalcTrend.delta} вакансий)
-                            </span>
-                          </div>
-                        )}
                         <div className="space-y-3">
                           <div className="grid grid-cols-2 gap-3">
                             <div className="rounded-[20px] bg-stone-950 p-4 text-stone-50">
