@@ -339,3 +339,58 @@ export async function listParseRuns(): Promise<ParseRun[]> {
   const { data } = await api.get("/parser/runs");
   return data as ParseRun[];
 }
+
+// Salary Calculator
+export interface SalaryCalcCompany {
+  company: string;
+  vacancy_count: number;
+  avg_salary_kzt: number;
+}
+
+export interface SalaryCalcResult {
+  skill: string;
+  experience: string | null;
+  region: string | null;
+  avg_salary_kzt: number;
+  median_salary_kzt: number;
+  p25_salary_kzt: number;
+  p75_salary_kzt: number;
+  min_salary_kzt: number;
+  max_salary_kzt: number;
+  sample_count: number;
+  top_companies: SalaryCalcCompany[];
+}
+
+export async function getSalaryCalc(params: {
+  skill: string;
+  experience?: string;
+  region?: string;
+  source?: string;
+}): Promise<SalaryCalcResult | null> {
+  const query = new URLSearchParams({ skill: params.skill });
+  if (params.experience) query.set("experience", params.experience);
+  if (params.region) query.set("region", params.region);
+  if (params.source) query.set("source", params.source);
+  const { data } = await api.get(`/analytics/salary-calc?${query}`);
+  return data as SalaryCalcResult | null;
+}
+
+// Skill Gap Analyzer
+export interface MissingSkill {
+  skill: string;
+  co_occurrence: number;
+  extra_vacancies: number;
+}
+
+export interface SkillGapResult {
+  total_vacancies: number;
+  matched_vacancies: number;
+  match_pct: number;
+  missing_skills: MissingSkill[];
+}
+
+export async function getSkillGap(skills: string[], source?: string): Promise<SkillGapResult> {
+  const query = source ? `?source=${source}` : "";
+  const { data } = await api.post(`/analytics/skill-gap${query}`, skills);
+  return data as SkillGapResult;
+}

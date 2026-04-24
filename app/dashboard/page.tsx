@@ -25,9 +25,11 @@ import {
   getExperience,
   getMe,
   getRegions,
+  getSalaryCalc,
   getSalaryHistogram,
   getSkillCard,
   getSkillBreakdown,
+  getSkillGap,
   getSkillsCompare,
   getSkills,
   getSalaries,
@@ -40,15 +42,18 @@ import {
   type CompanyStat,
   type CurrentUser,
   type LabeledCount,
+  type MissingSkill,
   type MonthlyTrend as Trend,
   type Page as ApiPage,
   type ParseRun,
   type RegionStat,
   type SalaryBucket,
+  type SalaryCalcResult,
   type SalaryRow as Salary,
   type SkillCard as ApiSkillCard,
   type SkillCompareItem,
   type SkillCount as Skill,
+  type SkillGapResult,
   type SkillGroup,
   type Summary,
   type TrendingSkill,
@@ -61,7 +66,7 @@ interface ChartPayload {
   data: Skill[] | Salary[] | Trend[] | RegionStat[] | CompanyStat[] | LabeledCount[] | SalaryBucket[] | SkillCompareItem[] | { label: string; value: number }[];
 }
 
-type TabId = "overview" | "skills" | "salaries" | "trends" | "market" | "ai";
+type TabId = "overview" | "skills" | "salaries" | "trends" | "market" | "ai" | "salary-calc" | "skill-gap";
 
 const tabs: { id: TabId; label: string }[] = [
   { id: "overview", label: "Обзор" },
@@ -69,6 +74,8 @@ const tabs: { id: TabId; label: string }[] = [
   { id: "salaries", label: "Зарплаты" },
   { id: "trends", label: "Тренды" },
   { id: "market", label: "Срез рынка" },
+  { id: "salary-calc", label: "Калькулятор" },
+  { id: "skill-gap", label: "Скилл-гэп" },
   { id: "ai", label: "AI чат" },
 ];
 
@@ -150,6 +157,18 @@ export default function Dashboard() {
   const [selectedVacancy, setSelectedVacancy] = useState<ApiVacancy | null>(null);
   const [vacanciesLoading, setVacanciesLoading] = useState(false);
   const [csvLoading, setCsvLoading] = useState(false);
+
+  const [salaryCalcSkill, setSalaryCalcSkill] = useState("");
+  const [salaryCalcExp, setSalaryCalcExp] = useState("");
+  const [salaryCalcRegion, setSalaryCalcRegion] = useState("");
+  const [salaryCalcResult, setSalaryCalcResult] = useState<SalaryCalcResult | null>(null);
+  const [salaryCalcLoading, setSalaryCalcLoading] = useState(false);
+  const [salaryCalcError, setSalaryCalcError] = useState("");
+
+  const [skillGapInput, setSkillGapInput] = useState("");
+  const [skillGapResult, setSkillGapResult] = useState<SkillGapResult | null>(null);
+  const [skillGapLoading, setSkillGapLoading] = useState(false);
+  const [skillGapError, setSkillGapError] = useState("");
 
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
@@ -411,6 +430,45 @@ export default function Dashboard() {
       active = false;
     };
   }, [vacancySource, vacanciesPageNumber, vacancySearch, vacancySkill, vacancyWithSalary]);
+
+  async function runSalaryCalc(event: React.FormEvent) {
+    event.preventDefault();
+    if (!salaryCalcSkill.trim()) return;
+    setSalaryCalcLoading(true);
+    setSalaryCalcError("");
+    setSalaryCalcResult(null);
+    try {
+      const result = await getSalaryCalc({
+        skill: salaryCalcSkill.trim(),
+        experience: salaryCalcExp || undefined,
+        region: salaryCalcRegion.trim() || undefined,
+        source,
+      });
+      if (!result) setSalaryCalcError("Нет данных по выбранным параметрам. Попробуй другой навык или уберите фильтры.");
+      else setSalaryCalcResult(result);
+    } catch {
+      setSalaryCalcError("Ошибка при получении данных.");
+    } finally {
+      setSalaryCalcLoading(false);
+    }
+  }
+
+  async function runSkillGap(event: React.FormEvent) {
+    event.preventDefault();
+    const skills = skillGapInput.split(",").map((s) => s.trim()).filter(Boolean);
+    if (!skills.length) return;
+    setSkillGapLoading(true);
+    setSkillGapError("");
+    setSkillGapResult(null);
+    try {
+      const result = await getSkillGap(skills, source);
+      setSkillGapResult(result);
+    } catch {
+      setSkillGapError("Ошибка при анализе навыков.");
+    } finally {
+      setSkillGapLoading(false);
+    }
+  }
 
   async function askAI(event: React.FormEvent) {
     event.preventDefault();
@@ -1092,6 +1150,202 @@ export default function Dashboard() {
                     />
                   </div>
                 </Panel>
+              </div>
+            )}
+
+            {activeTab === "salary-calc" && (
+              <div className="grid gap-6 xl:grid-cols-[1fr_1.4fr]">
+                <Panel
+                  eyebrow="Калькулятор зарплаты"
+                  title="Сколько платят за навык?"
+                  description="Выбери технологию, опыт и город — получишь реальный зарплатный срез по данным рынка."
+                >
+                  <form onSubmit={runSalaryCalc} className="space-y-4">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Навык *</label>
+                      <input
+                        value={salaryCalcSkill}
+                        onChange={(e) => setSalaryCalcSkill(e.target.value)}
+                        placeholder="Например: Python, Go, React..."
+                        className="w-full rounded-[20px] border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none transition focus:border-stone-950"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Опыт</label>
+                      <select
+                        value={salaryCalcExp}
+                        onChange={(e) => setSalaryCalcExp(e.target.value)}
+                        className="w-full rounded-[20px] border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none transition focus:border-stone-950"
+                      >
+                        <option value="">Любой</option>
+                        <option value="noExperience">Без опыта</option>
+                        <option value="between1And3">1–3 года</option>
+                        <option value="between3And6">3–6 лет</option>
+                        <option value="moreThan6">6+ лет</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Город</label>
+                      <input
+                        value={salaryCalcRegion}
+                        onChange={(e) => setSalaryCalcRegion(e.target.value)}
+                        placeholder="Например: Алматы, Астана..."
+                        className="w-full rounded-[20px] border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none transition focus:border-stone-950"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={salaryCalcLoading || !salaryCalcSkill.trim()}
+                      className="rounded-full bg-stone-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {salaryCalcLoading ? "Считаю..." : "Рассчитать"}
+                    </button>
+                  </form>
+                  {salaryCalcError && (
+                    <div className="mt-4 rounded-[20px] bg-rose-50 px-4 py-3 text-sm text-rose-700">{salaryCalcError}</div>
+                  )}
+                </Panel>
+
+                <div className="space-y-6">
+                  {salaryCalcResult && (
+                    <>
+                      <Panel
+                        eyebrow={salaryCalcResult.skill}
+                        title="Зарплатный срез"
+                        description={`По ${fmtInt(salaryCalcResult.sample_count)} вакансиям с указанной зарплатой`}
+                      >
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                          {[
+                            { label: "Медиана", value: salaryCalcResult.median_salary_kzt, highlight: true },
+                            { label: "Средняя", value: salaryCalcResult.avg_salary_kzt, highlight: false },
+                            { label: "25%", value: salaryCalcResult.p25_salary_kzt, highlight: false },
+                            { label: "75%", value: salaryCalcResult.p75_salary_kzt, highlight: false },
+                            { label: "Минимум", value: salaryCalcResult.min_salary_kzt, highlight: false },
+                            { label: "Максимум", value: salaryCalcResult.max_salary_kzt, highlight: false },
+                          ].map(({ label, value, highlight }) => (
+                            <div
+                              key={label}
+                              className={`rounded-[20px] p-4 ${highlight ? "bg-stone-950 text-stone-50" : "bg-stone-100 text-stone-900"}`}
+                            >
+                              <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${highlight ? "text-stone-400" : "text-stone-500"}`}>{label}</p>
+                              <p className="mt-1.5 text-lg font-bold">{fmtSalary(value)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </Panel>
+
+                      {salaryCalcResult.top_companies.length > 0 && (
+                        <Panel
+                          eyebrow="Компании"
+                          title="Кто платит выше медианы"
+                          description="Компании с минимум 2 вакансиями и зарплатой ≥ медианы"
+                        >
+                          <div className="space-y-2">
+                            {salaryCalcResult.top_companies.map((company) => (
+                              <div key={company.company} className="flex items-center justify-between rounded-[16px] bg-stone-100 px-4 py-3">
+                                <div>
+                                  <p className="text-sm font-semibold text-stone-900">{company.company}</p>
+                                  <p className="text-xs text-stone-500">{fmtInt(company.vacancy_count)} вакансий</p>
+                                </div>
+                                <p className="text-sm font-bold text-teal-700">{fmtSalary(company.avg_salary_kzt)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </Panel>
+                      )}
+                    </>
+                  )}
+                  {!salaryCalcResult && !salaryCalcLoading && !salaryCalcError && (
+                    <div className="flex h-48 items-center justify-center rounded-[26px] border border-dashed border-stone-300 text-sm text-stone-400">
+                      Введи навык и нажми «Рассчитать»
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "skill-gap" && (
+              <div className="grid gap-6 xl:grid-cols-[1fr_1.4fr]">
+                <Panel
+                  eyebrow="Анализ скилл-гэпа"
+                  title="Сколько вакансий тебе доступно?"
+                  description="Введи свои навыки — узнаешь, какой процент рынка ты покрываешь и что стоит изучить дальше."
+                >
+                  <form onSubmit={runSkillGap} className="space-y-4">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Твои навыки</label>
+                      <textarea
+                        value={skillGapInput}
+                        onChange={(e) => setSkillGapInput(e.target.value)}
+                        placeholder="Python, Django, PostgreSQL, Docker..."
+                        className="min-h-32 w-full rounded-[20px] border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none transition focus:border-stone-950"
+                      />
+                      <p className="mt-1.5 text-xs text-stone-400">Перечисли через запятую</p>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={skillGapLoading || !skillGapInput.trim()}
+                      className="rounded-full bg-stone-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {skillGapLoading ? "Анализирую..." : "Проанализировать"}
+                    </button>
+                  </form>
+                  {skillGapError && (
+                    <div className="mt-4 rounded-[20px] bg-rose-50 px-4 py-3 text-sm text-rose-700">{skillGapError}</div>
+                  )}
+                </Panel>
+
+                <div className="space-y-6">
+                  {skillGapResult && (
+                    <>
+                      <Panel
+                        eyebrow="Покрытие рынка"
+                        title={`${skillGapResult.match_pct}% вакансий доступно`}
+                        description={`${fmtInt(skillGapResult.matched_vacancies)} из ${fmtInt(skillGapResult.total_vacancies)} вакансий содержат хотя бы один твой навык`}
+                      >
+                        <div className="h-4 overflow-hidden rounded-full bg-stone-200">
+                          <div
+                            className="h-full rounded-full bg-teal-600 transition-all duration-700"
+                            style={{ width: `${Math.min(skillGapResult.match_pct, 100)}%` }}
+                          />
+                        </div>
+                        <p className="mt-2 text-right text-sm font-semibold text-teal-700">{skillGapResult.match_pct}%</p>
+                      </Panel>
+
+                      {skillGapResult.missing_skills.length > 0 && (
+                        <Panel
+                          eyebrow="Чего не хватает"
+                          title="Топ навыков для роста"
+                          description="Навыки, которые часто встречаются рядом с твоим стеком — добавив их, откроешь больше вакансий"
+                        >
+                          <div className="space-y-2">
+                            {skillGapResult.missing_skills.map((item: MissingSkill, index: number) => (
+                              <div key={item.skill} className="flex items-center gap-3 rounded-[16px] bg-stone-100 px-4 py-3">
+                                <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-stone-300 text-xs font-bold text-stone-700">
+                                  {index + 1}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-semibold text-stone-900">{item.skill}</p>
+                                  <p className="text-xs text-stone-500">встречается в {fmtInt(item.co_occurrence)} вакансиях рядом с твоим стеком</p>
+                                </div>
+                                {item.extra_vacancies > 0 && (
+                                  <span className="flex-shrink-0 rounded-full bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-700">
+                                    +{fmtInt(item.extra_vacancies)} вакансий
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </Panel>
+                      )}
+                    </>
+                  )}
+                  {!skillGapResult && !skillGapLoading && !skillGapError && (
+                    <div className="flex h-48 items-center justify-center rounded-[26px] border border-dashed border-stone-300 text-sm text-stone-400">
+                      Введи навыки и нажми «Проанализировать»
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
