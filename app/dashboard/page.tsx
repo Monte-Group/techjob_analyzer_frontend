@@ -1225,23 +1225,38 @@ export default function Dashboard() {
                         title="Зарплатный срез"
                         description={`По ${fmtInt(salaryCalcResult.sample_count)} вакансиям с указанной зарплатой`}
                       >
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                          {[
-                            { label: "Медиана", value: salaryCalcResult.median_salary_kzt, highlight: true },
-                            { label: "Средняя", value: salaryCalcResult.avg_salary_kzt, highlight: false },
-                            { label: "25%", value: salaryCalcResult.p25_salary_kzt, highlight: false },
-                            { label: "75%", value: salaryCalcResult.p75_salary_kzt, highlight: false },
-                            { label: "Минимум", value: salaryCalcResult.min_salary_kzt, highlight: false },
-                            { label: "Максимум", value: salaryCalcResult.max_salary_kzt, highlight: false },
-                          ].map(({ label, value, highlight }) => (
-                            <div
-                              key={label}
-                              className={`rounded-[20px] p-4 ${highlight ? "bg-stone-950 text-stone-50" : "bg-stone-100 text-stone-900"}`}
-                            >
-                              <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${highlight ? "text-stone-400" : "text-stone-500"}`}>{label}</p>
-                              <p className="mt-1.5 text-lg font-bold">{fmtSalary(value)}</p>
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="rounded-[20px] bg-stone-950 p-4 text-stone-50">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Медиана</p>
+                              <p className="mt-1.5 text-lg font-bold">{fmtSalary(salaryCalcResult.median_salary_kzt)}</p>
                             </div>
-                          ))}
+                            <div className="rounded-[20px] bg-stone-100 p-4 text-stone-900">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Средняя</p>
+                              <p className="mt-1.5 text-lg font-bold">{fmtSalary(salaryCalcResult.avg_salary_kzt)}</p>
+                            </div>
+                          </div>
+
+                          <div className="rounded-[20px] bg-teal-50 p-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-600">Типичный диапазон</p>
+                            <p className="mt-1 text-sm text-teal-800">
+                              {fmtSalary(salaryCalcResult.p25_salary_kzt)}
+                              <span className="mx-2 text-teal-400">—</span>
+                              {fmtSalary(salaryCalcResult.p75_salary_kzt)}
+                            </p>
+                            <p className="mt-1 text-xs text-teal-600">половина вакансий платит в этом диапазоне</p>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="rounded-[20px] bg-stone-100 p-4 text-stone-900">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Минимум</p>
+                              <p className="mt-1.5 text-base font-bold">{fmtSalary(salaryCalcResult.min_salary_kzt)}</p>
+                            </div>
+                            <div className="rounded-[20px] bg-stone-100 p-4 text-stone-900">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Максимум</p>
+                              <p className="mt-1.5 text-base font-bold">{fmtSalary(salaryCalcResult.max_salary_kzt)}</p>
+                            </div>
+                          </div>
                         </div>
                       </Panel>
 
