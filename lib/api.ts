@@ -215,8 +215,10 @@ export async function getSalaryHistogram(source: VacancySource = "all") {
   return data as SalaryBucket[];
 }
 
-export async function getTrends(source: VacancySource = "all") {
-  const { data } = await api.get(`/analytics/trends?source=${source}`);
+export async function getTrends(source: VacancySource = "all", skill?: string) {
+  const q = new URLSearchParams({ source });
+  if (skill) q.set("skill", skill);
+  const { data } = await api.get(`/analytics/trends?${q}`);
   return data as MonthlyTrend[];
 }
 
@@ -380,6 +382,8 @@ export interface MissingSkill {
   skill: string;
   co_occurrence: number;
   extra_vacancies: number;
+  avg_salary_kzt: number | null;
+  priority_score: number;
 }
 
 export interface SkillGapResult {
