@@ -166,6 +166,7 @@ export default function Dashboard() {
   const [salaryCalcError, setSalaryCalcError] = useState("");
 
   const [skillGapInput, setSkillGapInput] = useState("");
+  const [skillGapSelected, setSkillGapSelected] = useState<string[]>([]);
   const [skillGapResult, setSkillGapResult] = useState<SkillGapResult | null>(null);
   const [skillGapLoading, setSkillGapLoading] = useState(false);
   const [skillGapError, setSkillGapError] = useState("");
@@ -453,15 +454,25 @@ export default function Dashboard() {
     }
   }
 
+  function addSkillGapSkill() {
+    const skill = skillGapInput.trim();
+    if (!skill || skillGapSelected.includes(skill)) return;
+    setSkillGapSelected((prev) => [...prev, skill]);
+    setSkillGapInput("");
+  }
+
+  function removeSkillGapSkill(skill: string) {
+    setSkillGapSelected((prev) => prev.filter((s) => s !== skill));
+  }
+
   async function runSkillGap(event: React.FormEvent) {
     event.preventDefault();
-    const skills = skillGapInput.split(",").map((s) => s.trim()).filter(Boolean);
-    if (!skills.length) return;
+    if (!skillGapSelected.length) return;
     setSkillGapLoading(true);
     setSkillGapError("");
     setSkillGapResult(null);
     try {
-      const result = await getSkillGap(skills, source);
+      const result = await getSkillGap(skillGapSelected, source);
       setSkillGapResult(result);
     } catch {
       setSkillGapError("Ошибка при анализе навыков.");
@@ -1299,21 +1310,59 @@ export default function Dashboard() {
                 >
                   <form onSubmit={runSkillGap} className="space-y-4">
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Твои навыки</label>
-                      <textarea
-                        value={skillGapInput}
-                        onChange={(e) => setSkillGapInput(e.target.value)}
-                        placeholder="Python, Django, PostgreSQL, Docker..."
-                        className="min-h-32 w-full rounded-[20px] border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none transition focus:border-stone-950"
-                      />
-                      <p className="mt-1.5 text-xs text-stone-400">Перечисли через запятую</p>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Добавить навык</label>
+                      <div className="flex gap-2">
+                        <input
+                          value={skillGapInput}
+                          onChange={(e) => setSkillGapInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSkillGapSkill(); } }}
+                          list="skill-gap-skills-list"
+                          placeholder="Начни вводить: Python, Go..."
+                          autoComplete="off"
+                          className="min-w-0 flex-1 rounded-[20px] border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none transition focus:border-stone-950"
+                        />
+                        <datalist id="skill-gap-skills-list">
+                          {skillGroups.flatMap((g) => g.items)
+                            .filter((s) => !skillGapSelected.includes(s.skill))
+                            .map((s) => <option key={s.skill} value={s.skill} />)}
+                        </datalist>
+                        <button
+                          type="button"
+                          onClick={addSkillGapSkill}
+                          disabled={!skillGapInput.trim()}
+                          className="flex-shrink-0 rounded-full border border-stone-300 bg-white px-4 py-3 text-sm font-semibold text-stone-700 transition hover:border-stone-950 hover:text-stone-950 disabled:opacity-40"
+                        >
+                          + Добавить
+                        </button>
+                      </div>
                     </div>
+
+                    {skillGapSelected.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {skillGapSelected.map((skill) => (
+                          <span
+                            key={skill}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-stone-950 px-3 py-1.5 text-sm font-medium text-white"
+                          >
+                            {skill}
+                            <button
+                              type="button"
+                              onClick={() => removeSkillGapSkill(skill)}
+                              className="text-stone-400 hover:text-white"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
                     <button
                       type="submit"
-                      disabled={skillGapLoading || !skillGapInput.trim()}
+                      disabled={skillGapLoading || skillGapSelected.length === 0}
                       className="rounded-full bg-stone-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {skillGapLoading ? "Анализирую..." : "Проанализировать"}
+                      {skillGapLoading ? "Анализирую..." : `Проанализировать${skillGapSelected.length > 0 ? ` (${skillGapSelected.length})` : ""}`}
                     </button>
                   </form>
                   {skillGapError && (
@@ -1368,7 +1417,7 @@ export default function Dashboard() {
                   )}
                   {!skillGapResult && !skillGapLoading && !skillGapError && (
                     <div className="flex h-48 items-center justify-center rounded-[26px] border border-dashed border-stone-300 text-sm text-stone-400">
-                      Введи навыки и нажми «Проанализировать»
+                      Добавь навыки и нажми «Проанализировать»
                     </div>
                   )}
                 </div>
