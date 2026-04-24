@@ -441,7 +441,7 @@ export default function Dashboard() {
       const result = await getSalaryCalc({
         skill: salaryCalcSkill.trim(),
         experience: salaryCalcExp || undefined,
-        region: salaryCalcRegion.trim() || undefined,
+        region: salaryCalcRegion || undefined,
         source,
       });
       if (!result) setSalaryCalcError("Нет данных по выбранным параметрам. Попробуй другой навык или уберите фильтры.");
@@ -1166,9 +1166,16 @@ export default function Dashboard() {
                       <input
                         value={salaryCalcSkill}
                         onChange={(e) => setSalaryCalcSkill(e.target.value)}
-                        placeholder="Например: Python, Go, React..."
+                        list="salary-calc-skills-list"
+                        placeholder="Начни вводить: Python, Go, React..."
+                        autoComplete="off"
                         className="w-full rounded-[20px] border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none transition focus:border-stone-950"
                       />
+                      <datalist id="salary-calc-skills-list">
+                        {skillGroups.flatMap((g) => g.items).map((s) => (
+                          <option key={s.skill} value={s.skill} />
+                        ))}
+                      </datalist>
                     </div>
                     <div>
                       <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Опыт</label>
@@ -1186,12 +1193,16 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Город</label>
-                      <input
+                      <select
                         value={salaryCalcRegion}
                         onChange={(e) => setSalaryCalcRegion(e.target.value)}
-                        placeholder="Например: Алматы, Астана..."
                         className="w-full rounded-[20px] border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none transition focus:border-stone-950"
-                      />
+                      >
+                        <option value="">Любой город</option>
+                        {regions.map((r) => (
+                          <option key={r.region} value={r.region}>{r.region}</option>
+                        ))}
+                      </select>
                     </div>
                     <button
                       type="submit"
