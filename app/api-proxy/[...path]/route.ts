@@ -1,5 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 const BACKEND = process.env.BACKEND_URL ?? "http://localhost:8000";
 
 async function proxy(req: NextRequest, params: { path: string[] }) {
@@ -20,7 +23,10 @@ async function proxy(req: NextRequest, params: { path: string[] }) {
   const isSSE = upstream.headers.get("content-type")?.includes("text/event-stream");
 
   if (isSSE && upstream.body) {
-    return new NextResponse(upstream.body, {
+    const { readable, writable } = new TransformStream();
+    upstream.body.pipeTo(writable).catch(() => {});
+
+    return new Response(readable, {
       status: upstream.status,
       headers: {
         "Content-Type": "text/event-stream",

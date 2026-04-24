@@ -112,6 +112,9 @@ const chartColors = ["#0f766e", "#f59e0b", "#1d4ed8", "#dc2626", "#7c3aed", "#08
 
 const fmtInt = (value: number) => new Intl.NumberFormat("ru-RU").format(value);
 const fmtSalary = (value: number) => `${new Intl.NumberFormat("ru-KZ", { maximumFractionDigits: 0 }).format(value)} ₸`;
+const clientBackendBase =
+  process.env.NEXT_PUBLIC_API_URL ??
+  (typeof window !== "undefined" ? "http://localhost:8000" : "/api-proxy");
 
 export default function Dashboard() {
   const router = useRouter();
@@ -141,6 +144,7 @@ export default function Dashboard() {
   const [vacancySearch, setVacancySearch] = useState("");
   const [vacancySkill, setVacancySkill] = useState("");
   const [vacancyWithSalary, setVacancyWithSalary] = useState(false);
+  const [vacancySource, setVacancySource] = useState<"all" | "hh" | "telegram">("all");
   const [vacanciesPageNumber, setVacanciesPageNumber] = useState(1);
   const [vacancies, setVacancies] = useState<ApiPage<ApiVacancy> | null>(null);
   const [selectedVacancy, setSelectedVacancy] = useState<ApiVacancy | null>(null);
@@ -386,7 +390,7 @@ export default function Dashboard() {
       void listVacancies({
         page: vacanciesPageNumber,
         size: 8,
-        source,
+        source: vacancySource,
         search: vacancySearch || undefined,
         skill: vacancySkill || undefined,
         with_salary: vacancyWithSalary || undefined,
@@ -406,7 +410,7 @@ export default function Dashboard() {
     return () => {
       active = false;
     };
-  }, [source, vacanciesPageNumber, vacancySearch, vacancySkill, vacancyWithSalary]);
+  }, [vacancySource, vacanciesPageNumber, vacancySearch, vacancySkill, vacancyWithSalary]);
 
   async function askAI(event: React.FormEvent) {
     event.preventDefault();
@@ -418,7 +422,7 @@ export default function Dashboard() {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "/api-proxy"}/ai/chat`, {
+      const response = await fetch(`${clientBackendBase}/ai/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -954,6 +958,18 @@ export default function Dashboard() {
                       placeholder="Поиск по названию или компании"
                       className="min-w-0 flex-1 rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-stone-950"
                     />
+                    <select
+                      value={vacancySource}
+                      onChange={(event) => {
+                        setVacancySource(event.target.value as "all" | "hh" | "telegram");
+                        setVacanciesPageNumber(1);
+                      }}
+                      className="rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 outline-none"
+                    >
+                      <option value="all">Все источники</option>
+                      <option value="hh">hh.kz</option>
+                      <option value="telegram">Telegram</option>
+                    </select>
                     <select
                       value={vacancySkill}
                       onChange={(event) => {
@@ -1690,9 +1706,9 @@ function VacancyDetailPanel({ vacancy }: { vacancy: ApiVacancy | null }) {
 
       <div className="mt-5 grid gap-3 md:grid-cols-2">
         <DetailBox label="Зарплата" value={formatVacancySalary(vacancy)} />
-        <DetailBox label="Опыт" value={vacancy.experience ?? "Не указан"} />
-        <DetailBox label="Занятость" value={vacancy.employment ?? "Не указана"} />
-        <DetailBox label="Источник ID" value={vacancy.hh_id ?? vacancy.tg_channel ?? "Нет внешнего идентификатора"} />
+        <DetailBox label="Опыт" value={formatExperience(vacancy.experience)} />
+        <DetailBox label="Занятость" value={formatEmployment(vacancy.employment)} />
+        <DetailBox label="Источник" value={vacancy.source === "hh" ? "hh.kz" : vacancy.tg_channel ? `Telegram · ${vacancy.tg_channel}` : "Telegram"} />
       </div>
 
       <div className="mt-5">
@@ -1720,6 +1736,31 @@ function DetailBox({ label, value }: { label: string; value: string }) {
       <div className="mt-2 text-sm text-stone-800">{value}</div>
     </div>
   );
+}
+
+const EXPERIENCE_LABELS: Record<string, string> = {
+  noExperience: "Без опыта",
+  between1And3: "От 1 до 3 лет",
+  between3And6: "От 3 до 6 лет",
+  moreThan6: "Более 6 лет",
+};
+
+const EMPLOYMENT_LABELS: Record<string, string> = {
+  FULL: "Полная занятость",
+  PART: "Частичная занятость",
+  PROJECT: "Проектная работа",
+  FLY_IN_FLY_OUT: "Вахта",
+  SIDE_JOB: "Подработка",
+};
+
+function formatExperience(value: string | null | undefined): string {
+  if (!value) return "Не указан";
+  return EXPERIENCE_LABELS[value] ?? value;
+}
+
+function formatEmployment(value: string | null | undefined): string {
+  if (!value) return "Не указана";
+  return EMPLOYMENT_LABELS[value] ?? value;
 }
 
 function formatVacancySalary(vacancy: ApiVacancy) {
