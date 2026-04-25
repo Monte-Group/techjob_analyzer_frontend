@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { getMe } from "@/lib/api";
 import { Arrow } from "@/shared/ui/Arrow";
@@ -42,12 +43,15 @@ export default function Nav() {
     >
       <div className="mx-auto max-w-[1400px] px-6 md:px-10 h-16 flex items-center justify-between gap-6">
         <Link href="/" className="flex items-center gap-2 group" aria-label="Stack.kz — home">
-          <span
-            className="text-[color:var(--gold)] text-lg leading-none transition-transform group-hover:scale-110"
+          <Image
+            src="/logo-on-dark-512.png"
+            alt=""
+            width={24}
+            height={24}
+            priority
+            className="h-6 w-6 transition-transform group-hover:scale-110"
             aria-hidden
-          >
-            ⚡
-          </span>
+          />
           <span className="font-mono text-[13px] tracking-[0.22em] uppercase text-[color:var(--text)]">
             STACK<span className="text-[color:var(--gold)]">/</span>KZ
           </span>

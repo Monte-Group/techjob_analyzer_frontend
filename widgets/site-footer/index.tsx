@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 type Col = { title: string; links: [string, string][] };
 
 const COLS: Col[] = [
@@ -39,7 +41,14 @@ export default function SiteFooter() {
         <div className="grid grid-cols-2 md:grid-cols-12 gap-8">
           <div className="col-span-2 md:col-span-5">
             <div className="flex items-center gap-2">
-              <span className="text-[color:var(--gold)] text-lg">⚡</span>
+              <Image
+                src="/logo-on-dark-512.png"
+                alt=""
+                width={24}
+                height={24}
+                className="h-6 w-6"
+                aria-hidden
+              />
               <span className="font-mono text-[13px] tracking-[0.22em] uppercase">
                 STACK<span className="text-[color:var(--gold)]">/</span>KZ
               </span>
