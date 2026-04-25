@@ -187,6 +187,8 @@ export default function Dashboard() {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   const [dashboardLoading, setDashboardLoading] = useState(true);
+  const skillChips = [...skills.slice(0, 6), ...trendingSkills.slice(0, 6).map((item) => ({ skill: item.skill, count: item.current_count }))]
+    .filter((item, index, items) => items.findIndex((candidate) => candidate.skill === item.skill) === index);
 
   async function loadMe() {
     try {
@@ -894,7 +896,7 @@ export default function Dashboard() {
                   description="Карточка собирается новым backend-эндпоинтом и даёт быстрый срез по зарплатам, регионам, компаниям и связанным технологиям."
                 >
                   <div className="mb-5 flex flex-wrap gap-2">
-                    {[...skills.slice(0, 6), ...trendingSkills.slice(0, 6).map((item) => ({ skill: item.skill, count: item.current_count }))].map((item) => (
+                    {skillChips.map((item) => (
                       <button
                         key={`skill-chip-${item.skill}`}
                         onClick={() => setSelectedSkill(item.skill)}
