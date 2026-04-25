@@ -1,0 +1,115 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: tech-job-frontend
+  cancel-in-progress: true
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+          buildkitd-flags: --debug
+
+      - name: Login to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push image with cache
+        uses: docker/build-push-action@v5
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          context: .
+          push: true
+          tags: |
+            ghcr.io/monte-group/tech-job-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    runs-on: self-hosted
+    needs: build-and-push
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull new image and restart
+        run: |
+          docker compose -f /home/newuser/monte-group-runner/_work/sdu-life-ci-cd/sdu-life-ci-cd/docker-compose.yml pull tech-job-frontend
+          docker compose -f /home/newuser/monte-group-runner/_work/sdu-life-ci-cd/sdu-life-ci-cd/docker-compose.yml up -d tech-job-frontend
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy]
+    if: always()
+    steps:
+      - name: Build commit list
+        id: commits
+        run: |
+          COMMITS=$(cat <<'COMMITS_JSON'
+          ${{ toJSON(github.event.commits) }}
+          COMMITS_JSON
+          )
+          LIST=$(echo "$COMMITS" | jq -r '.[] | "• \(.message | split("\n")[0]) (\(.author.username // .author.name))"' 2>/dev/null || echo "• ${{ github.event.head_commit.message }}")
+          # Truncate if too long for Telegram (max ~4096 chars)
+          LIST=$(echo "$LIST" | head -20)
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "list<<$EOF" >> $GITHUB_OUTPUT
+          echo "$LIST" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+
+      - name: Calculate duration
+        id: duration
+        run: |
+          START=$(date -d "${{ github.event.repository.pushed_at || github.event.head_commit.timestamp }}" +%s 2>/dev/null || date -d "${{ github.event.head_commit.timestamp }}" +%s)
+          NOW=$(date +%s)
+          DIFF=$((NOW - START))
+          MIN=$((DIFF / 60))
+          SEC=$((DIFF % 60))
+          echo "time=${MIN}m ${SEC}s" >> $GITHUB_OUTPUT
+
+      - name: Send success
+        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+        run: |
+          TEXT="✅ SUCCESS: ${{ github.repository }} (${{ github.ref_name }})
+          ⏱ Duration: ${{ steps.duration.outputs.time }}
+
+          Commits:
+          ${{ steps.commits.outputs.list }}"
+          curl -X POST https://api.telegram.org/bot${{ secrets.BOT_TOKEN }}/sendMessage \
+            -d chat_id=-1003780943238 \
+            --data-urlencode "text=$TEXT"
+
+      - name: Send failed
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: |
+          TEXT="❌ FAILED: ${{ github.repository }} (${{ github.ref_name }})
+          ⏱ Duration: ${{ steps.duration.outputs.time }}
+
+          Commits:
+          ${{ steps.commits.outputs.list }}"
+          curl -X POST https://api.telegram.org/bot${{ secrets.BOT_TOKEN }}/sendMessage \
+            -d chat_id=-1003780943238 \
+            --data-urlencode "text=$TEXT"
