@@ -25,7 +25,7 @@ export default function Personas() {
           <div>
             <span className="eyebrow">[&nbsp;04&nbsp;] &nbsp;&nbsp;For whom</span>
             <h2 className="large mt-4">
-              Кому это нужно<em className="font-display italic text-[color:var(--gold)]">.</em>
+              Кому это нужно<em className="font-display italic text-[color:var(--accent)]">.</em>
             </h2>
           </div>
         </div>

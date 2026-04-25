@@ -26,7 +26,7 @@ export default function SkillsLeaderboard() {
             <h2 className="large mt-4">
               Топ-10 скиллов
               <br />
-              <em className="font-display italic text-[color:var(--gold)]">прямо сейчас.</em>
+              <em className="font-display italic text-[color:var(--accent)]">прямо сейчас.</em>
             </h2>
           </div>
           <div className="flex items-center gap-2 text-[11px] font-mono tracking-[0.12em] uppercase text-[color:var(--text-dim)]">
@@ -70,7 +70,7 @@ export default function SkillsLeaderboard() {
                   <td className="px-4 py-3 text-right text-[color:var(--text)] tabular">
                     {fmtK(s.middle)}
                   </td>
-                  <td className="px-4 py-3 text-right text-[color:var(--gold)] tabular font-medium">
+                  <td className="px-4 py-3 text-right text-[color:var(--accent)] tabular font-medium">
                     {fmtK(s.senior)}
                   </td>
                   <td className="px-4 py-3 text-right text-[color:var(--text-dim)] tabular">
@@ -86,7 +86,7 @@ export default function SkillsLeaderboard() {
                     <div className="inline-flex">
                       <Sparkline
                         data={s.spark}
-                        color={s.delta >= 30 ? "var(--gold)" : "var(--text-dim)"}
+                        color={s.delta >= 30 ? "var(--accent)" : "var(--text-dim)"}
                       />
                     </div>
                   </td>
@@ -99,7 +99,7 @@ export default function SkillsLeaderboard() {
           <span>фильтры · регион · уровень · компания · тип оффера — в&nbsp;дашборде</span>
           <Link
             href="/login"
-            className="text-[color:var(--gold)] hover:text-[color:var(--gold-bright)] flex items-center gap-2"
+            className="text-[color:var(--accent)] hover:text-[color:var(--accent-bright)] flex items-center gap-2"
           >
             открыть полный рейтинг <Arrow />
           </Link>

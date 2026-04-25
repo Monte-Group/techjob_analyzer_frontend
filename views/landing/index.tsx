@@ -14,9 +14,9 @@ import SiteFooter from "@/widgets/site-footer";
 
 export default function LandingView() {
   return (
-    <main className="relative bg-[color:var(--bg)] text-[color:var(--text)] grain">
-      <Nav />
+    <main className="relative text-[color:var(--text)] grain">
       <Ticker />
+      <Nav />
       <Hero />
       <StatsStrip />
       <Manifesto />

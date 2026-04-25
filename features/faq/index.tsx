@@ -24,12 +24,12 @@ export default function Faq({ items }: { items: FaqItem[] }) {
               </span>
               <h3
                 itemProp="name"
-                className="flex-1 headline text-[1.35rem] md:text-[1.85rem] text-[color:var(--text)] transition-colors group-hover:text-[color:var(--gold-bright)]"
+                className="flex-1 headline text-[1.35rem] md:text-[1.85rem] text-[color:var(--text)] transition-colors group-hover:text-[color:var(--accent-bright)]"
               >
                 {it.q}
               </h3>
               <span
-                className="font-mono text-[color:var(--gold)] text-xl leading-none pt-1 shrink-0 transition-transform duration-300"
+                className="font-mono text-[color:var(--accent)] text-xl leading-none pt-1 shrink-0 transition-transform duration-300"
                 style={{ transform: isOpen ? "rotate(45deg)" : "rotate(0)" }}
                 aria-hidden
               >

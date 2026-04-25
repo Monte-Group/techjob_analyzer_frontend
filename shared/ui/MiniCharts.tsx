@@ -12,7 +12,7 @@ export function BarMiniChart() {
             y={80 - h}
             width="14"
             height={h}
-            fill={i === bars.length - 1 ? "var(--gold)" : "var(--border-strong)"}
+            fill={i === bars.length - 1 ? "var(--accent)" : "var(--border-strong)"}
           />
         );
       })}
@@ -44,7 +44,7 @@ export function SalarySpread() {
             y={Math.min(b.mid, b.mid + 8)}
             width="20"
             height="8"
-            fill={i === 2 ? "var(--gold)" : "var(--text-dim)"}
+            fill={i === 2 ? "var(--accent)" : "var(--text-dim)"}
           />
           <text
             x={b.x + 30}
@@ -75,17 +75,17 @@ export function DemandSpark() {
     <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-full overflow-visible" aria-hidden>
       <defs>
         <linearGradient id="dg" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="var(--gold)" stopOpacity="0.4" />
-          <stop offset="100%" stopColor="var(--gold)" stopOpacity="0" />
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
         </linearGradient>
       </defs>
       <polygon points={`0,${h} ${pts.join(" ")} ${w},${h}`} fill="url(#dg)" />
-      <polyline points={pts.join(" ")} fill="none" stroke="var(--gold)" strokeWidth="1.5" />
+      <polyline points={pts.join(" ")} fill="none" stroke="var(--accent)" strokeWidth="1.5" />
       <circle
         cx={w}
         cy={h - ((d[d.length - 1] - min) / range) * (h - 8) - 4}
         r="3"
-        fill="var(--gold-bright)"
+        fill="var(--accent-bright)"
       />
     </svg>
   );
@@ -93,7 +93,7 @@ export function DemandSpark() {
 
 export function CompanyRanks() {
   const rows = [
-    { n: "BTS Digital", v: 95, c: "var(--gold)" },
+    { n: "BTS Digital", v: 95, c: "var(--accent)" },
     { n: "Kaspi.kz",    v: 88, c: "var(--text)" },
     { n: "inDrive",     v: 82, c: "var(--text)" },
     { n: "Wooppay",     v: 72, c: "var(--text-dim)" },
@@ -121,7 +121,7 @@ export function CompanyRanks() {
 
 export function GeoChart() {
   const bars = [
-    { l: "ALM", v: 58, c: "var(--gold)" },
+    { l: "ALM", v: 58, c: "var(--accent)" },
     { l: "AST", v: 27, c: "var(--text)" },
     { l: "SHY", v: 6, c: "var(--text-dim)" },
     { l: "KGD", v: 4, c: "var(--text-dim)" },
@@ -163,13 +163,13 @@ export function ApiChart() {
   return (
     <svg viewBox="0 0 240 80" className="w-full h-full font-mono" aria-hidden>
       <text x="0" y="14" fontSize="10" fill="var(--text-dim)" fontFamily="var(--font-mono)">
-        <tspan fill="var(--gold)">GET</tspan> /v1/skills/top?limit=10
+        <tspan fill="var(--accent)">GET</tspan> /v1/skills/top?limit=10
       </text>
       <text x="0" y="30" fontSize="10" fill="var(--muted)" fontFamily="var(--font-mono)">
         ⤷ 200 OK · 42ms
       </text>
       <text x="0" y="52" fontSize="10" fill="var(--text-dim)" fontFamily="var(--font-mono)">
-        <tspan fill="var(--gold)">GET</tspan> /v1/salary?stack=go
+        <tspan fill="var(--accent)">GET</tspan> /v1/salary?stack=go
       </text>
       <text x="0" y="68" fontSize="10" fill="var(--muted)" fontFamily="var(--font-mono)">
         ⤷ 200 OK · 38ms

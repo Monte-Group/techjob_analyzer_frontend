@@ -56,7 +56,7 @@ export default function FeaturesGrid() {
         {FEATURES.map((f, i) => (
           <div key={i} className="px-6 md:px-8 py-10 md:py-12 group">
             <div className="flex items-start justify-between">
-              <span className="eyebrow text-[color:var(--gold)]">{f.tag}</span>
+              <span className="eyebrow text-[color:var(--accent)]">{f.tag}</span>
               <span className="font-mono text-[11px] tracking-[0.12em] text-[color:var(--muted)]">
                 {String(i + 1).padStart(2, "0")}/06
               </span>

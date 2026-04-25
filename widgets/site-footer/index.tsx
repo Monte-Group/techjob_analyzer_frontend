@@ -26,8 +26,8 @@ const COLS: Col[] = [
     title: "Компания",
     links: [
       ["Блог", "#"],
-      ["Контакты", "mailto:hello@stack.kz"],
-      ["Telegram", "https://t.me/stack_kz"],
+      ["Контакты", "mailto:hello@j-ai.kz"],
+      ["Telegram", "https://t.me/j_ai_kz"],
       ["Вакансии", "#"],
       ["Пресса", "#"],
     ],
@@ -50,7 +50,7 @@ export default function SiteFooter() {
                 aria-hidden
               />
               <span className="font-mono text-[13px] tracking-[0.22em] uppercase">
-                STACK<span className="text-[color:var(--gold)]">/</span>KZ
+                J<span className="text-[color:var(--accent)]">-</span>AI
               </span>
             </div>
             <p className="mt-5 text-[14px] text-[color:var(--text-dim)] max-w-sm leading-relaxed">
@@ -58,9 +58,9 @@ export default function SiteFooter() {
               Считаем честно. Показываем всё.
             </p>
             <div className="mt-6 font-mono text-[11px] text-[color:var(--muted)] space-y-1">
-              <div>ТОО «Stack Analytics», БИН 250340012345</div>
+              <div>ТОО «J — AI», БИН 250340012345</div>
               <div>Алматы, пр. Достык 89</div>
-              <div>hello@stack.kz · +7&nbsp;(727)&nbsp;000&nbsp;01&nbsp;02</div>
+              <div>hello@j-ai.kz · +7&nbsp;(727)&nbsp;000&nbsp;01&nbsp;02</div>
             </div>
           </div>
 
@@ -72,7 +72,7 @@ export default function SiteFooter() {
                   <li key={label}>
                     <a
                       href={href}
-                      className="text-[color:var(--text-dim)] hover:text-[color:var(--gold-bright)] transition-colors"
+                      className="text-[color:var(--text-dim)] hover:text-[color:var(--accent-bright)] transition-colors"
                     >
                       {label}
                     </a>
@@ -84,11 +84,11 @@ export default function SiteFooter() {
         </div>
 
         <div className="mt-14 pt-6 hairline-t flex flex-wrap items-center justify-between gap-3 font-mono text-[11px] tracking-[0.12em] uppercase text-[color:var(--muted)]">
-          <span>© 2026 Stack.kz · Все права защищены</span>
+          <span>© 2026 J — AI · Все права защищены</span>
           <div className="flex items-center gap-6">
-            <a href="#" className="hover:text-[color:var(--text)]">Политика</a>
-            <a href="#" className="hover:text-[color:var(--text)]">Условия</a>
-            <a href="#" className="hover:text-[color:var(--text)]">Cookies</a>
+            <a href="/docs/privacy" className="hover:text-[color:var(--text)]">Политика</a>
+            <a href="/docs/terms" className="hover:text-[color:var(--text)]">Условия</a>
+            <a href="/docs/cookies" className="hover:text-[color:var(--text)]">Cookies</a>
             <span className="flex items-center gap-2">
               <span className="live-dot h-[6px] w-[6px] rounded-full bg-[color:var(--green)] inline-block" />
               systems · operational

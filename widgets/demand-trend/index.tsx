@@ -9,7 +9,7 @@ export default function DemandTrend() {
             <span className="eyebrow">[&nbsp;03&nbsp;] &nbsp;&nbsp;Demand · 12 месяцев</span>
             <h2 className="large mt-4">
               Спрос растёт{" "}
-              <em className="font-display italic text-[color:var(--gold)]">
+              <em className="font-display italic text-[color:var(--accent)]">
                 там, где мало кто смотрит.
               </em>
             </h2>

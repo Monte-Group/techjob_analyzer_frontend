@@ -26,7 +26,7 @@ export default function Hero() {
         className="absolute -right-40 -top-40 w-[700px] h-[700px] rounded-full pointer-events-none"
         style={{
           background:
-            "radial-gradient(circle at center, rgba(255,203,71,0.14), rgba(255,203,71,0) 60%)",
+            "radial-gradient(circle at center, rgba(124,108,255,0.22), rgba(124,108,255,0) 60%)",
         }}
       />
 
@@ -35,7 +35,7 @@ export default function Hero() {
           <div className="col-span-12 lg:col-span-7 relative">
             <div className="flex items-center gap-3 mb-8 reveal">
               <span className="eyebrow">
-                Stack<span className="text-[color:var(--gold)]">/</span>kz
+                J<span className="text-[color:var(--accent)]">-</span>AI
               </span>
               <span className="h-[10px] w-px bg-[color:var(--border-strong)]" />
               <span className="eyebrow">Выпуск №14 · Апрель 2026</span>
@@ -50,7 +50,7 @@ export default function Hero() {
               Сколько реально
               <br />
               стоит{" "}
-              <em className="not-italic text-[color:var(--gold)] font-display italic font-[500]">
+              <em className="not-italic text-[color:var(--accent)] font-display italic font-[500]">
                 твой&nbsp;стек
               </em>
               <br />
@@ -90,7 +90,7 @@ export default function Hero() {
                   key={s.name}
                   className="inline-flex items-baseline gap-2 font-mono text-[11px] tracking-[0.08em] uppercase text-[color:var(--text)]"
                 >
-                  <span className="text-[color:var(--gold)]">/</span>
+                  <span className="text-[color:var(--accent)]">/</span>
                   {s.name}
                   <span className="text-[color:var(--muted)]">{s.note}</span>
                 </span>
@@ -122,18 +122,18 @@ export default function Hero() {
                 <div className="flex items-center justify-between px-4 py-2.5 hairline-b bg-[color:var(--bg)]">
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[color:var(--red)]" />
-                    <span className="h-2 w-2 rounded-full bg-[color:var(--gold)]" />
+                    <span className="h-2 w-2 rounded-full bg-[color:var(--accent)]" />
                     <span className="h-2 w-2 rounded-full bg-[color:var(--green)]" />
                   </div>
                   <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[color:var(--muted)]">
-                    stack.kz / query
+                    j-ai / query
                   </span>
                   <span className="font-mono text-[10px] text-[color:var(--muted)]">14:02:41</span>
                 </div>
 
                 <div className="px-5 py-5 font-mono text-[12px] leading-[1.8]">
                   <div className="text-[color:var(--text-dim)]">
-                    <span className="text-[color:var(--gold)]">$</span> stack query
+                    <span className="text-[color:var(--accent)]">$</span> jai query
                   </div>
                   <div className="text-[color:var(--text-dim)] pl-3">
                     --role <span className="text-[color:var(--text)]">senior</span>{" "}
@@ -152,7 +152,7 @@ export default function Hero() {
                         [{String(r.n).padStart(2, "0")}]
                       </span>
                       <span className="flex-1 text-[color:var(--text)]">{r.co}</span>
-                      <span className="text-[color:var(--gold)] tabular">₸ {r.v}</span>
+                      <span className="text-[color:var(--accent)] tabular">₸ {r.v}</span>
                     </div>
                   ))}
                   <div className="mt-4 hairline-t pt-3 flex justify-between">

@@ -9,12 +9,12 @@ export default function Manifesto() {
           <div className="col-span-12 md:col-span-9">
             <p className="medium text-[color:var(--text)]">
               Раньше ты гадал, сколько стоит твой{" "}
-              <em className="font-display italic text-[color:var(--gold)]">Go+Kafka+k8s</em> в Алматы.
+              <em className="font-display italic text-[color:var(--accent)]">Go+Kafka+k8s</em> в Алматы.
               Спрашивал в чатах. Получал тот ответ, который удобен
               советчику. <span className="text-[color:var(--text-dim)]">Теперь не надо.</span>
             </p>
             <p className="mt-8 max-w-[720px] text-[17px] leading-relaxed text-[color:var(--text-dim)]">
-              Stack.kz читает каждую вакансию, которая появилась за последние 12 месяцев.
+              J — AI читает каждую вакансию, которая появилась за последние 12 месяцев.
               Разбирает её на атомы — стек, уровень, оффер, компания, регион — и
               считает честную статистику. Ты видишь медиану, разброс, динамику и
               топ-работодателей за 3 секунды. Не за неделю в HR-спорах.

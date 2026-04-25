@@ -1,4 +1,4 @@
-export function Check({ gold }: { gold?: boolean }) {
+export function Check({ accent }: { accent?: boolean }) {
   return (
     <svg
       width="14"
@@ -10,7 +10,7 @@ export function Check({ gold }: { gold?: boolean }) {
     >
       <path
         d="M2 7.5L5.5 11L12 3.5"
-        stroke={gold ? "var(--gold)" : "var(--text-dim)"}
+        stroke={accent ? "var(--accent)" : "var(--text-dim)"}
         strokeWidth="1.4"
         strokeLinecap="square"
       />

@@ -12,7 +12,7 @@ export default function Pricing() {
             <h2 className="large mt-4">
               Один раз настроил —
               <br />
-              <em className="font-display italic text-[color:var(--gold)]">
+              <em className="font-display italic text-[color:var(--accent)]">
                 платишь как за кофе.
               </em>
             </h2>
@@ -66,17 +66,17 @@ export default function Pricing() {
               className="absolute -top-20 -right-20 w-[300px] h-[300px] rounded-full pointer-events-none"
               style={{
                 background:
-                  "radial-gradient(circle at center, rgba(255,203,71,0.15), transparent 60%)",
+                  "radial-gradient(circle at center, rgba(124,108,255,0.22), transparent 60%)",
               }}
             />
             <div className="relative flex items-baseline justify-between">
-              <span className="eyebrow text-[color:var(--gold)]">⚡ Pro · популярное</span>
-              <span className="font-mono text-[10px] text-[color:var(--gold)]">
+              <span className="eyebrow text-[color:var(--accent)]">⚡ Pro · популярное</span>
+              <span className="font-mono text-[10px] text-[color:var(--accent)]">
                 14&nbsp;дней&nbsp;бесплатно
               </span>
             </div>
             <div className="relative mt-8 flex items-baseline gap-2">
-              <span className="num-lg text-6xl text-[color:var(--gold-bright)]">4,900</span>
+              <span className="num-lg text-6xl text-[color:var(--accent-bright)]">4,900</span>
               <span className="font-mono text-sm text-[color:var(--text-dim)]">₸ / месяц</span>
             </div>
             <div className="mt-1 font-mono text-[11px] text-[color:var(--muted)]">
@@ -96,7 +96,7 @@ export default function Pricing() {
                 "API 1,000 запросов/мес",
               ].map((f) => (
                 <li key={f} className="flex items-start gap-3">
-                  <Check gold />
+                  <Check accent />
                   <span className="text-[color:var(--text)]">{f}</span>
                 </li>
               ))}
@@ -140,7 +140,7 @@ export default function Pricing() {
                 </li>
               ))}
             </ul>
-            <a href="mailto:team@stack.kz" className="btn-ghost mt-10 justify-center">
+            <a href="mailto:team@j-ai.kz" className="btn-ghost mt-10 justify-center">
               Связаться
             </a>
           </div>
@@ -148,17 +148,17 @@ export default function Pricing() {
 
         <div className="mt-6 panel hairline px-6 md:px-8 py-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-baseline gap-6 flex-wrap">
-            <span className="eyebrow text-[color:var(--gold)]">Enterprise</span>
+            <span className="eyebrow text-[color:var(--accent)]">Enterprise</span>
             <p className="text-[14px] text-[color:var(--text-dim)] max-w-[600px]">
               Нужен SSO, on-prem, кастомный парсинг внутренних источников или DPA с
               казахстанской юрисдикцией?
             </p>
           </div>
           <a
-            href="mailto:enterprise@stack.kz"
-            className="font-mono text-[11px] tracking-[0.12em] uppercase text-[color:var(--gold)] hover:text-[color:var(--gold-bright)] flex items-center gap-2"
+            href="mailto:enterprise@j-ai.kz"
+            className="font-mono text-[11px] tracking-[0.12em] uppercase text-[color:var(--accent)] hover:text-[color:var(--accent-bright)] flex items-center gap-2"
           >
-            enterprise@stack.kz <Arrow />
+            enterprise@j-ai.kz <Arrow />
           </a>
         </div>
       </div>

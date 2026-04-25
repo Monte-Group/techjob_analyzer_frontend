@@ -24,8 +24,8 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
-const SITE_URL = "https://stack.kz";
-const SITE_TITLE = "Stack.kz — Аналитика IT-рынка Казахстана: зарплаты, скиллы, тренды";
+const SITE_URL = "https://j-ai.kz";
+const SITE_TITLE = "J — AI · Аналитика IT-рынка Казахстана: зарплаты, скиллы, тренды";
 const SITE_DESC =
   "Аналитика IT-рынка Казахстана по данным hh.kz и Telegram: зарплаты, навыки, тренды и AI-разбор вакансий.";
 
@@ -33,11 +33,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: SITE_TITLE,
-    template: "%s · Stack.kz",
+    template: "%s · J — AI",
   },
   description: SITE_DESC,
-  applicationName: "Stack.kz",
-  authors: [{ name: "Stack.kz" }],
+  applicationName: "J — AI",
+  authors: [{ name: "J — AI" }],
   generator: "Next.js",
   keywords: [
     "IT зарплаты Казахстан",
@@ -74,7 +74,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "ru_KZ",
     url: SITE_URL,
-    siteName: "Stack.kz",
+    siteName: "J — AI",
     title: SITE_TITLE,
     description: SITE_DESC,
   },
@@ -97,8 +97,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0b" },
-    { media: "(prefers-color-scheme: light)", color: "#0a0a0b" },
+    { media: "(prefers-color-scheme: dark)", color: "#18181b" },
+    { media: "(prefers-color-scheme: light)", color: "#18181b" },
   ],
   colorScheme: "dark",
   width: "device-width",
@@ -108,27 +108,27 @@ export const viewport: Viewport = {
 const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "Stack.kz",
+  name: "J — AI",
   url: SITE_URL,
   logo: `${SITE_URL}/logo-app-icon-512.png`,
   description: SITE_DESC,
   foundingDate: "2025",
   areaServed: { "@type": "Country", name: "Kazakhstan" },
-  sameAs: ["https://t.me/stack_kz", "https://github.com/stack-kz"],
+  sameAs: ["https://t.me/j_ai_kz", "https://github.com/j-ai-kz"],
 };
 
 const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   url: SITE_URL,
-  name: "Stack.kz",
+  name: "J — AI",
   inLanguage: "ru-KZ",
 };
 
 const softwareSchema = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "Stack.kz — Tech Job Market Analyzer",
+  name: "J — AI · Tech Job Market Analyzer",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   offers: { "@type": "Offer", price: "0", priceCurrency: "KZT" },

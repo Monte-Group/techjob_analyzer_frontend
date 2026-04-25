@@ -64,15 +64,15 @@ export default function FaqSection() {
             <h2 className="large mt-4">
               Частые
               <br />
-              <em className="font-display italic text-[color:var(--gold)]">вопросы.</em>
+              <em className="font-display italic text-[color:var(--accent)]">вопросы.</em>
             </h2>
             <p className="mt-6 max-w-xs text-[14px] text-[color:var(--text-dim)] leading-relaxed">
               Не нашёл ответ? Напиши в Telegram{" "}
               <a
-                href="https://t.me/stack_kz"
-                className="text-[color:var(--gold)] hover:text-[color:var(--gold-bright)]"
+                href="https://t.me/j_ai_kz"
+                className="text-[color:var(--accent)] hover:text-[color:var(--accent-bright)]"
               >
-                @stack_kz
+                @j_ai_kz
               </a>{" "}
               — отвечаем в течение часа в рабочие дни.
             </p>

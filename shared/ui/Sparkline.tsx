@@ -1,6 +1,6 @@
 export function Sparkline({
   data,
-  color = "var(--gold)",
+  color = "var(--accent)",
   width = 72,
   height = 22,
 }: {

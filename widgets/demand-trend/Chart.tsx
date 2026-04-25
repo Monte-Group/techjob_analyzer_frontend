@@ -30,7 +30,7 @@ const DATA: Row[] = [
 ];
 
 const SERIES = [
-  { key: "react",  label: "React / TS",   color: "#ffcb47" },
+  { key: "react",  label: "React / TS",   color: "#7c6cff" },
   { key: "python", label: "Python",       color: "#fbf4df" },
   { key: "go",     label: "Go",           color: "#82c1f0" },
   { key: "devops", label: "DevOps / K8s", color: "#a4e47b" },
@@ -84,7 +84,7 @@ export default function DemandChart() {
               width={42}
             />
             <Tooltip
-              cursor={{ stroke: "#ffcb47", strokeWidth: 1, strokeDasharray: "2 3" }}
+              cursor={{ stroke: "#7c6cff", strokeWidth: 1, strokeDasharray: "2 3" }}
               contentStyle={{
                 background: "#0a0a0b",
                 border: "1px solid #35353a",

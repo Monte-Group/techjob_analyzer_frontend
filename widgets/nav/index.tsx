@@ -37,31 +37,57 @@ export default function Nav() {
     <header
       className="sticky top-0 z-40 backdrop-blur-sm transition-colors"
       style={{
-        background: scrolled ? "rgba(10,10,11,0.82)" : "transparent",
-        borderBottom: scrolled ? "1px solid var(--border)" : "1px solid transparent",
+        background: scrolled ? "rgba(24,24,27,0.82)" : "transparent",
+        borderBottom: scrolled
+          ? "1px solid var(--border)"
+          : "1px solid transparent",
       }}
     >
       <div className="mx-auto max-w-[1400px] px-6 md:px-10 h-16 flex items-center justify-between gap-6">
-        <Link href="/" className="flex items-center gap-2 group" aria-label="Stack.kz — home">
+        <Link
+          href="/"
+          className="flex items-center gap-2 group"
+          aria-label="J — AI — home"
+        >
           <Image
-            src="/logo-on-dark-512.png"
+            src="/logo-app-icon-512.png"
             alt=""
             width={24}
             height={24}
             priority
-            className="h-6 w-6 transition-transform group-hover:scale-110"
+            className="h-6 w-6 rounded-[5px] transition-transform group-hover:scale-110"
             aria-hidden
           />
           <span className="font-mono text-[13px] tracking-[0.22em] uppercase text-[color:var(--text)]">
-            STACK<span className="text-[color:var(--gold)]">/</span>KZ
+            J<span className="text-[color:var(--accent)]">-</span>AI
           </span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 font-mono text-[11px] tracking-[0.12em] uppercase text-[color:var(--text-dim)]">
-          <a href="#features" className="hover:text-[color:var(--text)] transition-colors">Возможности</a>
-          <a href="#live" className="hover:text-[color:var(--text)] transition-colors">Данные</a>
-          <a href="#pricing" className="hover:text-[color:var(--text)] transition-colors">Цены</a>
-          <a href="#faq" className="hover:text-[color:var(--text)] transition-colors">FAQ</a>
+          <a
+            href="#features"
+            className="hover:text-[color:var(--text)] transition-colors"
+          >
+            Возможности
+          </a>
+          <a
+            href="#live"
+            className="hover:text-[color:var(--text)] transition-colors"
+          >
+            Данные
+          </a>
+          <a
+            href="#pricing"
+            className="hover:text-[color:var(--text)] transition-colors"
+          >
+            Цены
+          </a>
+          <a
+            href="#faq"
+            className="hover:text-[color:var(--text)] transition-colors"
+          >
+            FAQ
+          </a>
         </nav>
 
         <div className="flex items-center gap-3">
