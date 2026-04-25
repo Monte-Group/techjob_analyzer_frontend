@@ -27,7 +27,7 @@ const plexMono = IBM_Plex_Mono({
 const SITE_URL = "https://stack.kz";
 const SITE_TITLE = "Stack.kz — Аналитика IT-рынка Казахстана: зарплаты, скиллы, тренды";
 const SITE_DESC =
-  "Реальные данные из HH.ru и LinkedIn. Узнай какие скиллы в тренде в Казахстане, сколько платят по твоему стеку, и как меняется спрос. Обновляется каждые 4 часа.";
+  "Аналитика IT-рынка Казахстана по данным hh.kz и Telegram: зарплаты, навыки, тренды и AI-разбор вакансий.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -69,45 +69,22 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: "/",
-    languages: {
-      "ru-KZ": "/",
-      "kk-KZ": "/kk",
-      "en-US": "/en",
-    },
   },
   openGraph: {
     type: "website",
     locale: "ru_KZ",
-    alternateLocale: ["kk_KZ", "en_US"],
     url: SITE_URL,
     siteName: "Stack.kz",
     title: SITE_TITLE,
     description: SITE_DESC,
-    images: [
-      {
-        url: "/og.png",
-        width: 1200,
-        height: 630,
-        alt: "Stack.kz — Аналитика IT-рынка Казахстана",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESC,
-    images: ["/og.png"],
-    creator: "@stack_kz",
   },
   icons: {
-    icon: [
-      { url: "/favicon.ico" },
-      { url: "/icon.svg", type: "image/svg+xml" },
-    ],
-  },
-  verification: {
-    google: "google-site-verification-placeholder",
-    yandex: "yandex-verification-placeholder",
+    icon: [{ url: "/favicon.ico" }],
   },
 };
 
@@ -139,11 +116,6 @@ const websiteSchema = {
   url: SITE_URL,
   name: "Stack.kz",
   inLanguage: "ru-KZ",
-  potentialAction: {
-    "@type": "SearchAction",
-    target: `${SITE_URL}/search?q={query}`,
-    "query-input": "required name=query",
-  },
 };
 
 const softwareSchema = {
@@ -152,32 +124,7 @@ const softwareSchema = {
   name: "Stack.kz — Tech Job Market Analyzer",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
-  offers: [
-    {
-      "@type": "Offer",
-      name: "Free",
-      price: "0",
-      priceCurrency: "KZT",
-    },
-    {
-      "@type": "Offer",
-      name: "Pro",
-      price: "4900",
-      priceCurrency: "KZT",
-    },
-    {
-      "@type": "Offer",
-      name: "Team",
-      price: "19900",
-      priceCurrency: "KZT",
-    },
-  ],
-  aggregateRating: {
-    "@type": "AggregateRating",
-    ratingValue: "4.8",
-    ratingCount: "312",
-    bestRating: "5",
-  },
+  offers: { "@type": "Offer", price: "0", priceCurrency: "KZT" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

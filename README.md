@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend
 
-## Getting Started
+Next.js App Router frontend для landing, login и dashboard аналитики IT-рынка.
 
-First, run the development server:
+## Стек
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- Recharts
+- Axios
+
+## Структура
+
+```text
+frontend/
+├── app/         # route entrypoints
+├── views/       # page-level compositions
+├── widgets/     # крупные UI-секции
+├── features/    # прикладные интерактивные блоки
+├── entities/    # domain-level types/helpers
+├── shared/      # shared UI and utilities
+└── lib/api.ts   # основной клиент backend API
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Переменные окружения
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Опционально:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+NEXT_PUBLIC_API_URL=/api-proxy
+BACKEND_URL=http://localhost:8000
+```
 
-## Learn More
+По умолчанию frontend использует локальный route handler `/api-proxy`, который проксирует запросы к backend и корректно передаёт SSE/cookies.
 
-To learn more about Next.js, take a look at the following resources:
+## Запуск
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+cd frontend
+yarn install
+yarn dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Проверки
 
-## Deploy on Vercel
+```bash
+cd frontend
+yarn lint
+yarn build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Важные замечания
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Аутентификация теперь опирается на `HttpOnly` cookie, а не на `localStorage` как основной источник истины.
+- Не добавляй raw `fetch`/`axios` вызовы в компоненты без причины: сначала расширяй `lib/api.ts`.
+- Для backend SSE-запросов используй `/api-proxy`, а не прямой `localhost:8000`.

@@ -21,13 +21,13 @@ export default function LoginPage() {
 
     try {
       if (mode === "login") {
-        const token = await login(email, password);
-        localStorage.setItem("token", token);
+        await login(email, password);
+        localStorage.removeItem("token");
         router.push("/dashboard");
       } else {
         await register(email, password);
-        const token = await login(email, password);
-        localStorage.setItem("token", token);
+        await login(email, password);
+        localStorage.removeItem("token");
         router.push("/dashboard");
       }
     } catch (requestError) {
@@ -116,9 +116,9 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Минимум 6 символов"
+                placeholder="Минимум 8 символов и хотя бы одна цифра"
                 required
-                minLength={6}
+                minLength={8}
                 className="w-full rounded-[22px] border border-white/12 bg-white/8 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-400 focus:border-amber-400"
               />
             </label>

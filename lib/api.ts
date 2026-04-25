@@ -2,7 +2,7 @@ import axios from "axios";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "/api-proxy";
 
-const api = axios.create({ baseURL: BASE });
+const api = axios.create({ baseURL: BASE, withCredentials: true });
 
 api.interceptors.request.use((cfg) => {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -13,10 +13,8 @@ api.interceptors.request.use((cfg) => {
 api.interceptors.response.use(
   (r) => r,
   (err) => {
-    const isAuthEndpoint = err.config?.url?.includes("/auth/");
-    if (err.response?.status === 401 && !isAuthEndpoint && typeof window !== "undefined") {
+    if (err.response?.status === 401 && typeof window !== "undefined") {
       localStorage.removeItem("token");
-      window.location.href = "/login";
     }
     return Promise.reject(err);
   }
@@ -24,11 +22,11 @@ api.interceptors.response.use(
 
 export type VacancySource = "all" | "hh" | "telegram";
 export type VacancyExperience =
-  | "no_experience"
-  | "between_1_and_3"
-  | "between_3_and_6"
-  | "more_than_6";
-export type VacancyEmployment = "full" | "part" | "project" | "volunteer" | "probation";
+  | "noExperience"
+  | "between1And3"
+  | "between3And6"
+  | "moreThan6";
+export type VacancyEmployment = "FULL" | "PART" | "PROJECT" | "FLY_IN_FLY_OUT" | "SIDE_JOB";
 
 export interface SkillCount {
   skill: string;
@@ -329,7 +327,8 @@ export interface ParseRun {
 
 export interface TriggerResponse {
   run_id: string;
-  detail: string;
+  task_id: string;
+  status: string;
 }
 
 export async function triggerParse(parseType: "hh" | "telegram"): Promise<TriggerResponse> {
@@ -340,6 +339,10 @@ export async function triggerParse(parseType: "hh" | "telegram"): Promise<Trigge
 export async function listParseRuns(): Promise<ParseRun[]> {
   const { data } = await api.get("/parser/runs");
   return data as ParseRun[];
+}
+
+export async function logout(): Promise<void> {
+  await api.post("/auth/logout");
 }
 
 // Salary Calculator

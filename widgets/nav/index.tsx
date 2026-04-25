@@ -2,13 +2,28 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { getMe } from "@/lib/api";
 import { Arrow } from "@/shared/ui/Arrow";
 
 export default function Nav() {
-  const [hasToken] = useState<boolean | null>(() =>
-    typeof window === "undefined" ? null : Boolean(localStorage.getItem("token"))
-  );
+  const [hasSession, setHasSession] = useState<boolean | null>(null);
   const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    void getMe()
+      .then(() => {
+        if (active) setHasSession(true);
+      })
+      .catch(() => {
+        if (active) setHasSession(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -46,7 +61,7 @@ export default function Nav() {
         </nav>
 
         <div className="flex items-center gap-3">
-          {hasToken ? (
+          {hasSession ? (
             <Link href="/dashboard" className="btn-primary">
               Дашборд <Arrow />
             </Link>

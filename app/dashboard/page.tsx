@@ -24,6 +24,7 @@ import {
   getEmployment,
   getExperience,
   getMe,
+  logout as logoutRequest,
   getRegions,
   getSalaryCalc,
   getSalaryHistogram,
@@ -60,6 +61,7 @@ import {
   type Vacancy as ApiVacancy,
   type VacancySource,
 } from "@/lib/api";
+import { ActionButton, MetricCard, Panel } from "@/widgets/dashboard/primitives";
 
 interface ChartPayload {
   type: "skills" | "salaries" | "trends" | "regions" | "experience" | "employment" | "companies" | "salary_histogram" | "skill_compare" | "generic_bar";
@@ -119,9 +121,7 @@ const chartColors = ["#0f766e", "#f59e0b", "#1d4ed8", "#dc2626", "#7c3aed", "#08
 
 const fmtInt = (value: number) => new Intl.NumberFormat("ru-RU").format(value);
 const fmtSalary = (value: number) => `${new Intl.NumberFormat("ru-KZ", { maximumFractionDigits: 0 }).format(value)} ₸`;
-const clientBackendBase =
-  process.env.NEXT_PUBLIC_API_URL ??
-  (typeof window !== "undefined" ? "http://localhost:8000" : "/api-proxy");
+const clientBackendBase = process.env.NEXT_PUBLIC_API_URL ?? "/api-proxy";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -177,6 +177,7 @@ export default function Dashboard() {
   const [chatLoading, setChatLoading] = useState(false);
 
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [parseRuns, setParseRuns] = useState<ParseRun[]>([]);
   const [parseRunsLoading, setParseRunsLoading] = useState(false);
   const [parseTriggerLoading, setParseTriggerLoading] = useState<"hh" | "telegram" | null>(null);
@@ -189,15 +190,6 @@ export default function Dashboard() {
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const skillChips = [...skills.slice(0, 6), ...trendingSkills.slice(0, 6).map((item) => ({ skill: item.skill, count: item.current_count }))]
     .filter((item, index, items) => items.findIndex((candidate) => candidate.skill === item.skill) === index);
-
-  async function loadMe() {
-    try {
-      const user = await getMe();
-      setCurrentUser(user);
-    } catch {
-      // not critical — keep null
-    }
-  }
 
   async function loadParseRuns() {
     setParseRunsLoading(true);
@@ -215,14 +207,13 @@ export default function Dashboard() {
     parseStreamRef.current = controller;
     setParseStreamStatus("Запущен...");
 
-    const token = localStorage.getItem("token");
     const base = process.env.NEXT_PUBLIC_API_URL ?? "/api-proxy";
 
     void (async () => {
       try {
         const response = await fetch(`${base}/parser/runs/${runId}/stream`, {
-          headers: { Authorization: `Bearer ${token ?? ""}` },
           signal: controller.signal,
+          credentials: "include",
         });
 
         const reader = response.body?.getReader();
@@ -351,15 +342,25 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    if (!localStorage.getItem("token")) {
-      router.replace("/login");
-      return;
-    }
-    void loadMe();
-    startTransition(() => {
-      void loadDashboard(source);
-    });
-  }, [source]); // eslint-disable-line react-hooks/exhaustive-deps
+    let active = true;
+
+    void (async () => {
+      try {
+        const user = await getMe();
+        if (!active) return;
+        setCurrentUser(user);
+      } catch {
+        if (!active) return;
+        router.replace("/login");
+      } finally {
+        if (active) setAuthLoading(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
 
   useEffect(() => {
     return () => {
@@ -368,14 +369,21 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (!localStorage.getItem("token")) return;
+    if (authLoading || !currentUser) return;
+    startTransition(() => {
+      void loadDashboard(source);
+    });
+  }, [authLoading, currentUser, source]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (authLoading || !currentUser) return;
     startTransition(() => {
       void loadSalaries(source, salaryCategory);
     });
-  }, [salaryCategory, source]);
+  }, [authLoading, currentUser, salaryCategory, source]);
 
   useEffect(() => {
-    if (!localStorage.getItem("token") || !selectedSkill) return;
+    if (authLoading || !currentUser || !selectedSkill) return;
 
     let active = true;
 
@@ -400,10 +408,10 @@ export default function Dashboard() {
     return () => {
       active = false;
     };
-  }, [selectedSkill, source]);
+  }, [authLoading, currentUser, selectedSkill, source]);
 
   useEffect(() => {
-    if (!localStorage.getItem("token")) return;
+    if (authLoading || !currentUser) return;
 
     let active = true;
 
@@ -432,7 +440,7 @@ export default function Dashboard() {
     return () => {
       active = false;
     };
-  }, [vacancySource, vacanciesPageNumber, vacancySearch, vacancySkill, vacancyWithSalary]);
+  }, [authLoading, currentUser, vacancySource, vacanciesPageNumber, vacancySearch, vacancySkill, vacancyWithSalary]);
 
   async function runSalaryCalc(event: React.FormEvent) {
     event.preventDefault();
@@ -487,14 +495,13 @@ export default function Dashboard() {
     setChatLoading(true);
 
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`${clientBackendBase}/ai/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ question, source }),
+        credentials: "include",
       });
 
       const reader = response.body?.getReader();
@@ -536,7 +543,12 @@ export default function Dashboard() {
     }
   }
 
-  function logout() {
+  async function logout() {
+    try {
+      await logoutRequest();
+    } catch {
+      // ignore logout transport errors and clear legacy client state
+    }
     localStorage.removeItem("token");
     router.replace("/login");
   }
@@ -617,7 +629,7 @@ export default function Dashboard() {
                 <ActionButton
                   title="Выйти"
                   subtitle="Завершить текущую сессию"
-                  onClick={logout}
+                  onClick={() => void logout()}
                   tone="stone"
                 />
               )}
@@ -625,7 +637,7 @@ export default function Dashboard() {
                 <ActionButton
                   title="Выйти"
                   subtitle="Завершить текущую сессию"
-                  onClick={logout}
+                  onClick={() => void logout()}
                   tone="stone"
                 />
               )}
@@ -1518,88 +1530,6 @@ function chartTitle(type: ChartPayload["type"]) {
   if (type === "employment") return "Распределение по занятости";
   if (type === "companies") return "Срез по компаниям";
   return "Навыки";
-}
-
-function ActionButton({
-  title,
-  subtitle,
-  onClick,
-  disabled = false,
-  loading = false,
-  tone,
-}: {
-  title: string;
-  subtitle: string;
-  onClick: () => void;
-  disabled?: boolean;
-  loading?: boolean;
-  tone: "teal" | "amber" | "navy" | "stone";
-}) {
-  const toneClass = {
-    teal: "bg-teal-900 text-teal-50 hover:bg-teal-800",
-    amber: "bg-amber-600 text-amber-50 hover:bg-amber-500",
-    navy: "bg-blue-900 text-blue-50 hover:bg-blue-800",
-    stone: "bg-stone-200 text-stone-900 hover:bg-stone-300",
-  }[tone];
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`rounded-[22px] px-4 py-4 text-left transition ${toneClass} disabled:cursor-not-allowed disabled:opacity-60`}
-    >
-      <div className="text-sm font-semibold">{loading ? "Запуск..." : title}</div>
-      <div className="mt-1 text-xs opacity-85">{subtitle}</div>
-    </button>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-  detail,
-  accent,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-  accent: "teal" | "amber" | "navy" | "rose";
-}) {
-  const accentClass = {
-    teal: "from-teal-700/90 to-teal-500/85 text-white",
-    amber: "from-amber-500/95 to-orange-500/85 text-stone-950",
-    navy: "from-blue-900/95 to-blue-700/85 text-white",
-    rose: "from-rose-700/90 to-orange-600/85 text-white",
-  }[accent];
-
-  return (
-    <div className={`rounded-[24px] bg-gradient-to-br ${accentClass} p-5 shadow-[0_18px_45px_rgba(15,23,42,0.12)]`}>
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] opacity-80">{label}</p>
-      <p className="mt-4 text-3xl font-semibold">{value}</p>
-      <p className="mt-2 text-sm opacity-85">{detail}</p>
-    </div>
-  );
-}
-
-function Panel({
-  eyebrow,
-  title,
-  description,
-  children,
-}: {
-  eyebrow: string;
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-[30px] border border-white/75 bg-white/78 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.07)] backdrop-blur">
-      <p className="text-xs font-semibold uppercase tracking-[0.26em] text-stone-400">{eyebrow}</p>
-      <h2 className="mt-3 text-2xl font-semibold text-stone-950">{title}</h2>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-600">{description}</p>
-      <div className="mt-6">{children}</div>
-    </section>
-  );
 }
 
 function SourceMixCard({
