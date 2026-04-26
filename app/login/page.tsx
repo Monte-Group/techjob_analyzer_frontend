@@ -5,6 +5,24 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 
 import { login, register } from "@/lib/api";
+import Nav from "@/widgets/nav";
+import SiteFooter from "@/widgets/site-footer";
+import { Arrow } from "@/shared/ui/Arrow";
+
+const FEATURES = [
+  {
+    title: "HH ядро",
+    text: "Тренды, зарплаты, работодатели и чистая база для графиков.",
+  },
+  {
+    title: "Telegram слой",
+    text: "Живые сигналы рынка и быстрые изменения по каналам.",
+  },
+  {
+    title: "AI анализ",
+    text: "Ответы и графики в контексте выбранного источника.",
+  },
+];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -47,103 +65,237 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(15,118,110,0.18),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(245,158,11,0.18),_transparent_24%),linear-gradient(180deg,_#f4efe3_0%,_#f8f7f2_55%,_#edf4f1_100%)] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="rounded-[34px] border border-white/70 bg-white/68 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-10">
-          <div className="inline-flex rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-stone-500">
-            Kazakhstan IT Market
-          </div>
-          <h1 className="mt-5 font-serif text-4xl leading-tight text-stone-950 md:text-6xl">
-            Аналитика HH, сигналы Telegram и AI-интерпретация рынка в одном продукте.
-          </h1>
-          <p className="mt-5 max-w-xl text-sm leading-7 text-stone-600 md:text-base">
-            Платформа объединяет структурированную аналитику HH, живой Telegram-слой и AI-чат, который понимает выбранный
-            источник данных, а не отвечает абстрактно.
-          </p>
+    <main className="relative text-[color:var(--text)] grain min-h-screen flex flex-col">
+      <Nav />
 
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            <FeatureCard title="HH ядро" text="Тренды, зарплаты, работодатели и более чистая база для графиков." />
-            <FeatureCard title="Telegram слой" text="Вариативность, живые сигналы рынка и быстрые изменения в каналах." />
-            <FeatureCard title="AI анализ" text="Ответы и графики в контексте выбранного источника, а не в вакууме." />
-          </div>
-        </section>
+      <section className="relative overflow-hidden flex-1">
+        <div className="absolute inset-0 gridlines opacity-[0.5] pointer-events-none" />
+        <div
+          className="absolute -right-40 -top-40 w-[700px] h-[700px] rounded-full pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(circle at center, rgba(124,108,255,0.22), rgba(124,108,255,0) 60%)",
+          }}
+        />
 
-        <section className="rounded-[34px] bg-stone-950 p-6 text-stone-50 shadow-[0_30px_90px_rgba(28,25,23,0.2)] md:p-8">
-          <div className="mb-8 flex rounded-full bg-white/8 p-1">
-            {(["login", "register"] as const).map((currentMode) => (
-              <button
-                key={currentMode}
-                onClick={() => setMode(currentMode)}
-                className={`flex-1 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
-                  mode === currentMode ? "bg-white text-stone-950" : "text-stone-300 hover:text-white"
-                }`}
+        <div className="mx-auto max-w-[1400px] px-6 md:px-10 pt-16 md:pt-20 pb-16 md:pb-24 relative">
+          <div className="grid grid-cols-12 gap-8 items-start">
+            <div className="col-span-12 lg:col-span-7 relative">
+              <div className="flex items-center gap-3 mb-8 reveal">
+                <span className="eyebrow">
+                  J<span className="text-[color:var(--accent)]">-</span>AI
+                </span>
+                <span className="h-[10px] w-px bg-[color:var(--border-strong)]" />
+                <span className="eyebrow">
+                  {mode === "login" ? "Возврат · в дашборд" : "Создание · сессии"}
+                </span>
+                <span className="h-[10px] w-px bg-[color:var(--border-strong)]" />
+                <span className="flex items-center gap-1.5 eyebrow text-[color:var(--green)]">
+                  <span className="live-dot inline-block h-[6px] w-[6px] rounded-full bg-[color:var(--green)]" />
+                  LIVE DATA
+                </span>
+              </div>
+
+              <h1 className="large reveal" style={{ animationDelay: "80ms" }}>
+                Аналитика HH, сигналы Telegram
+                <br />
+                и{" "}
+                <em className="not-italic text-[color:var(--accent)] font-display italic font-[500]">
+                  AI-интерпретация
+                </em>{" "}
+                рынка
+                <br />
+                в одном продукте.
+              </h1>
+
+              <p
+                className="mt-8 max-w-[560px] text-[16px] md:text-[17px] leading-[1.55] text-[color:var(--text-dim)] reveal"
+                style={{ animationDelay: "160ms" }}
               >
-                {currentMode === "login" ? "Вход" : "Регистрация"}
-              </button>
-            ))}
-          </div>
+                Платформа объединяет структурированную аналитику HH, живой
+                Telegram-слой и AI-чат, который понимает выбранный{" "}
+                <span className="text-[color:var(--text)]">источник данных</span>,
+                а не отвечает абстрактно.
+              </p>
 
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">
-              {mode === "login" ? "Возврат в рабочую панель" : "Создание новой сессии"}
-            </p>
-            <h2 className="mt-3 text-3xl font-semibold">
-              {mode === "login" ? "Войти в dashboard" : "Создать аккаунт"}
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-stone-300">
-              {mode === "login"
-                ? "Продолжай анализировать рынок в выбранном источнике: HH, Telegram или объединённая выборка."
-                : "После регистрации ты сразу попадёшь в аналитический dashboard и AI-чат."}
-            </p>
-          </div>
+              <div
+                className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-px bg-[color:var(--border)] hairline reveal"
+                style={{ animationDelay: "240ms" }}
+              >
+                {FEATURES.map((f) => (
+                  <div
+                    key={f.title}
+                    className="bg-[color:var(--bg)] px-5 py-5"
+                  >
+                    <div className="font-display text-[20px] leading-tight text-[color:var(--text)]">
+                      {f.title}
+                    </div>
+                    <p className="mt-2 text-[13px] leading-relaxed text-[color:var(--text-dim)]">
+                      {f.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
 
-          <form onSubmit={submit} className="mt-8 space-y-5">
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-stone-200">Email</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="user@example.com"
-                required
-                className="w-full rounded-[22px] border border-white/12 bg-white/8 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-400 focus:border-amber-400"
-              />
-            </label>
+              <div
+                className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 reveal"
+                style={{ animationDelay: "320ms" }}
+              >
+                <span className="eyebrow">Что внутри:</span>
+                {[
+                  "340+ компаний",
+                  "обновление 4ч",
+                  "Pro 14 дней",
+                ].map((s) => (
+                  <span
+                    key={s}
+                    className="inline-flex items-baseline gap-2 font-mono text-[11px] tracking-[0.08em] uppercase text-[color:var(--text)]"
+                  >
+                    <span className="text-[color:var(--accent)]">/</span>
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
 
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-stone-200">Пароль</span>
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Минимум 8 символов и хотя бы одна цифра"
-                required
-                minLength={8}
-                className="w-full rounded-[22px] border border-white/12 bg-white/8 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-400 focus:border-amber-400"
-              />
-            </label>
-
-            {error && <p className="rounded-2xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">{error}</p>}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-full bg-amber-400 px-5 py-3 text-sm font-semibold text-stone-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
+            <div
+              className="col-span-12 lg:col-span-5 relative reveal"
+              style={{ animationDelay: "400ms" }}
             >
-              {loading ? "Подождите..." : mode === "login" ? "Войти" : "Зарегистрироваться"}
-            </button>
-          </form>
-        </section>
-      </div>
-    </div>
-  );
-}
+              <div className="panel-lift relative">
+                <div className="flex items-center justify-between px-4 py-2.5 hairline-b bg-[color:var(--bg)]">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[color:var(--red)]" />
+                    <span className="h-2 w-2 rounded-full bg-[color:var(--accent)]" />
+                    <span className="h-2 w-2 rounded-full bg-[color:var(--green)]" />
+                  </div>
+                  <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[color:var(--muted)]">
+                    j-ai / auth
+                  </span>
+                  <span className="font-mono text-[10px] text-[color:var(--muted)]">
+                    secure · tls
+                  </span>
+                </div>
 
-function FeatureCard({ title, text }: { title: string; text: string }) {
-  return (
-    <div className="rounded-[24px] border border-stone-200/80 bg-stone-50/80 p-4">
-      <h3 className="text-lg font-semibold text-stone-950">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-stone-600">{text}</p>
-    </div>
+                <div className="px-6 py-7 md:px-8 md:py-8">
+                  <div className="flex hairline">
+                    {(["login", "register"] as const).map((currentMode) => {
+                      const active = mode === currentMode;
+                      return (
+                        <button
+                          key={currentMode}
+                          type="button"
+                          onClick={() => setMode(currentMode)}
+                          className={`flex-1 px-4 py-2.5 font-mono text-[11px] tracking-[0.14em] uppercase transition-colors ${
+                            active
+                              ? "bg-[color:var(--accent)] text-[#fbf4df]"
+                              : "bg-transparent text-[color:var(--text-dim)] hover:text-[color:var(--text)]"
+                          }`}
+                        >
+                          {currentMode === "login" ? "Вход" : "Регистрация"}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-7">
+                    <div className="eyebrow">
+                      {mode === "login" ? "Шаг 01 · идентификация" : "Шаг 01 · новый аккаунт"}
+                    </div>
+                    <h2 className="medium mt-3 text-[1.6rem]">
+                      {mode === "login"
+                        ? "Войти в дашборд"
+                        : "Создать аккаунт"}
+                    </h2>
+                    <p className="mt-3 text-[14px] leading-relaxed text-[color:var(--text-dim)]">
+                      {mode === "login"
+                        ? "Продолжай анализировать рынок: HH, Telegram или объединённая выборка."
+                        : "После регистрации сразу попадёшь в дашборд и AI-чат."}
+                    </p>
+                  </div>
+
+                  <form onSubmit={submit} className="mt-7 space-y-5">
+                    <label className="block">
+                      <span className="eyebrow block mb-2">Email</span>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        placeholder="user@example.com"
+                        required
+                        autoComplete="email"
+                        className="w-full bg-[color:var(--bg)] hairline px-4 py-3 font-mono text-[13px] text-[color:var(--text)] placeholder:text-[color:var(--muted)] outline-none transition-colors focus:border-[color:var(--accent)]"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="eyebrow block mb-2">Пароль</span>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        placeholder="мин. 8 символов · хотя бы одна цифра"
+                        required
+                        minLength={8}
+                        autoComplete={
+                          mode === "login" ? "current-password" : "new-password"
+                        }
+                        className="w-full bg-[color:var(--bg)] hairline px-4 py-3 font-mono text-[13px] text-[color:var(--text)] placeholder:text-[color:var(--muted)] outline-none transition-colors focus:border-[color:var(--accent)]"
+                      />
+                    </label>
+
+                    {error && (
+                      <p
+                        role="alert"
+                        className="hairline px-4 py-3 font-mono text-[12px] text-[color:var(--red)]"
+                        style={{
+                          background: "rgba(255,130,114,0.08)",
+                          borderColor: "rgba(255,130,114,0.35)",
+                        }}
+                      >
+                        ! {error}
+                      </p>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="btn-primary w-full justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {loading
+                        ? "Подождите…"
+                        : mode === "login"
+                          ? "Войти"
+                          : "Зарегистрироваться"}
+                      <Arrow />
+                    </button>
+
+                    <p className="font-mono text-[11px] tracking-[0.06em] text-[color:var(--muted)] leading-relaxed">
+                      Продолжая, ты соглашаешься с{" "}
+                      <a
+                        href="/docs/terms"
+                        className="text-[color:var(--accent)] hover:text-[color:var(--accent-bright)]"
+                      >
+                        офертой
+                      </a>{" "}
+                      и{" "}
+                      <a
+                        href="/docs/privacy"
+                        className="text-[color:var(--accent)] hover:text-[color:var(--accent-bright)]"
+                      >
+                        политикой конфиденциальности
+                      </a>
+                      .
+                    </p>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <SiteFooter />
+    </main>
   );
 }

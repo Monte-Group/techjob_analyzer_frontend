@@ -591,18 +591,18 @@ export default function Dashboard() {
     : [];
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(15,118,110,0.18),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.16),_transparent_24%),linear-gradient(180deg,_#f4efe3_0%,_#f8f7f2_42%,_#eef5f2_100%)] text-stone-950">
+    <div className="relative min-h-screen text-[color:var(--text)] grain">
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 pb-10 pt-6 sm:px-6 lg:px-8">
-        <header className="rounded-[28px] border border-white/60 bg-white/75 p-5 shadow-[0_20px_80px_rgba(28,25,23,0.08)] backdrop-blur md:p-7">
+        <header className="rounded-[28px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5 md:p-7">
           <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
             <div className="max-w-3xl">
-              <div className="mb-4 inline-flex items-center rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-stone-500">
+              <div className="mb-4 inline-flex items-center rounded-full border border-[color:var(--border)] bg-[color:var(--bg-2)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--text-dim)]">
                 Tech Job Market Intelligence
               </div>
-              <h1 className="font-serif text-3xl leading-tight text-stone-950 md:text-5xl">
+              <h1 className="font-display text-3xl leading-tight text-[color:var(--text)] md:text-5xl">
                 Одна платформа для аналитики HH, Telegram-сигналов и AI-исследования рынка.
               </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-600 md:text-base">
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-[color:var(--text-dim)] md:text-base">
                 HH остаётся основным аналитическим ядром. Telegram добавляет живой слой вакансий и сигналов из каналов.
                 Переключай источник и смотри, как меняется рынок.
               </p>
@@ -645,7 +645,7 @@ export default function Dashboard() {
           </div>
 
           <div className="mt-7 grid gap-4 lg:grid-cols-[1.45fr_0.85fr]">
-            <div className="rounded-[26px] bg-stone-950 px-5 py-5 text-stone-50 shadow-[0_18px_50px_rgba(28,25,23,0.18)] md:px-6">
+            <div className="rounded-[26px] bg-[color:var(--bg)] px-5 py-5 text-[#fbf4df] md:px-6">
               <div className="flex flex-wrap items-center gap-2">
                 {sourceOptions.map((option) => (
                   <button
@@ -653,8 +653,8 @@ export default function Dashboard() {
                     onClick={() => setSource(option.id)}
                     className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                       source === option.id
-                        ? "bg-white text-stone-950"
-                        : "bg-white/8 text-stone-300 hover:bg-white/14 hover:text-white"
+                        ? "bg-[color:var(--surface)] text-[color:var(--text)]"
+                        : "bg-[color:var(--surface-2)] text-[color:var(--text-dim)] hover:bg-[color:var(--surface-2)] hover:text-white"
                     }`}
                   >
                     {option.label}
@@ -662,15 +662,15 @@ export default function Dashboard() {
                 ))}
               </div>
               <div className="mt-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">Активный режим</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--muted)]">Активный режим</p>
                 <h2 className="mt-2 text-2xl font-semibold">{sourceTitles[source]}</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-300">{sourceDescriptions[source]}</p>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--text-dim)]">{sourceDescriptions[source]}</p>
               </div>
             </div>
 
-            <div className="rounded-[26px] border border-stone-200/80 bg-stone-50/85 p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">Продуктовая логика</p>
-              <ul className="mt-4 space-y-3 text-sm leading-6 text-stone-700">
+            <div className="rounded-[26px] border border-[color:var(--border)] bg-[color:var(--bg-2)] p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--text-dim)]">Продуктовая логика</p>
+              <ul className="mt-4 space-y-3 text-sm leading-6 text-[color:var(--text)]">
                 <li>HH даёт устойчивую структуру для зарплат, компаний, трендов и AI-ответов.</li>
                 <li>Telegram расширяет картину рынка и ловит живые сигналы из каналов.</li>
                 <li>Фильтр источника не смешивает смыслы: ты сам управляешь контекстом анализа.</li>
@@ -678,31 +678,31 @@ export default function Dashboard() {
             </div>
           </div>
           {currentUser?.is_admin && showAdminPanel && (
-            <div className="mt-6 rounded-[26px] border border-amber-200/80 bg-amber-50/85 p-5">
+            <div className="mt-6 border border-[color:var(--border)] bg-[color:var(--bg-2)] p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">Панель администратора</p>
-                  <h3 className="mt-1 text-lg font-semibold text-stone-950">Управление парсингом</h3>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--accent)]">Панель администратора</p>
+                  <h3 className="mt-1 text-lg font-semibold text-[color:var(--text)]">Управление парсингом</h3>
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => void handleTriggerParse("hh")}
                     disabled={!!parseTriggerLoading || !!activeParseRunId}
-                    className="rounded-full bg-stone-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-full bg-[color:var(--bg)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {parseTriggerLoading === "hh" ? "Запускаю HH..." : "Запустить HH"}
                   </button>
                   <button
                     onClick={() => void handleTriggerParse("telegram")}
                     disabled={!!parseTriggerLoading || !!activeParseRunId}
-                    className="rounded-full bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-full bg-[color:var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--bg-2)]0 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {parseTriggerLoading === "telegram" ? "Запускаю TG..." : "Запустить Telegram"}
                   </button>
                   <button
                     onClick={() => void loadParseRuns()}
                     disabled={parseRunsLoading}
-                    className="rounded-full border border-stone-300 bg-white px-4 py-2.5 text-sm font-semibold text-stone-700 transition hover:border-stone-400 disabled:opacity-50"
+                    className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2.5 text-sm font-semibold text-[color:var(--text)] transition hover:border-[color:var(--border-strong)] disabled:opacity-50"
                   >
                     Обновить
                   </button>
@@ -710,37 +710,37 @@ export default function Dashboard() {
               </div>
 
               {parseTriggerError && (
-                <div className="mt-3 rounded-[22px] bg-rose-50 px-4 py-3 text-sm text-rose-700">{parseTriggerError}</div>
+                <div className="mt-3 bg-[rgba(255,130,114,0.08)] px-4 py-3 text-sm text-[color:var(--red)]">{parseTriggerError}</div>
               )}
 
               {activeParseRunId && (
-                <div className="mt-3 flex items-center gap-3 rounded-[22px] bg-teal-50 px-4 py-3 text-sm text-teal-800">
-                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-teal-500" />
+                <div className="mt-3 flex items-center gap-3 bg-[color:var(--bg-2)] px-4 py-3 text-sm text-[color:var(--green)]">
+                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[color:var(--bg-2)]0" />
                   {parseStreamStatus}
                 </div>
               )}
 
               <div className="mt-5">
-                {parseRunsLoading && <div className="text-sm text-stone-500">Загружаю историю запусков...</div>}
+                {parseRunsLoading && <div className="text-sm text-[color:var(--text-dim)]">Загружаю историю запусков...</div>}
                 {!parseRunsLoading && parseRuns.length === 0 && (
-                  <div className="text-sm text-stone-500">История запусков пуста.</div>
+                  <div className="text-sm text-[color:var(--text-dim)]">История запусков пуста.</div>
                 )}
                 {!parseRunsLoading && parseRuns.length > 0 && (
                   <div className="space-y-2">
                     {parseRuns.slice(0, 8).map((run) => (
                       <div
                         key={run.id}
-                        className={`flex flex-wrap items-center justify-between gap-3 rounded-[22px] px-4 py-3 text-sm ${
+                        className={`flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm ${
                           run.status === "done"
-                            ? "bg-teal-50 text-teal-900"
+                            ? "bg-[color:var(--bg-2)] text-[color:var(--green)]"
                             : run.status === "failed"
-                              ? "bg-rose-50 text-rose-900"
-                              : "bg-amber-50 text-amber-900"
+                              ? "bg-[rgba(255,130,114,0.08)] text-[color:var(--red)]"
+                              : "bg-[color:var(--bg-2)] text-[color:var(--accent)]"
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <span className={`rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${
-                            run.status === "done" ? "bg-teal-200" : run.status === "failed" ? "bg-rose-200" : "bg-amber-200"
+                            run.status === "done" ? "bg-[rgba(164,228,123,0.2)]" : run.status === "failed" ? "bg-[rgba(255,130,114,0.2)]" : "bg-[color:var(--accent)]"
                           }`}>
                             {run.status}
                           </span>
@@ -760,15 +760,15 @@ export default function Dashboard() {
           )}
         </header>
 
-        <div className="mt-6 flex flex-wrap gap-2 rounded-[24px] border border-white/70 bg-white/70 p-2 shadow-[0_12px_40px_rgba(15,23,42,0.05)] backdrop-blur">
+        <div className="mt-6 flex flex-wrap gap-2 border border-[color:var(--border)] bg-[color:var(--surface)] p-2">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`rounded-2xl px-4 py-2.5 text-sm font-medium transition ${
                 activeTab === tab.id
-                  ? "bg-stone-950 text-white shadow-[0_10px_30px_rgba(28,25,23,0.18)]"
-                  : "text-stone-600 hover:bg-stone-100 hover:text-stone-950"
+                  ? "bg-[color:var(--bg)] text-white"
+                  : "text-[color:var(--text-dim)] hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text)]"
               }`}
             >
               {tab.label}
@@ -779,7 +779,7 @@ export default function Dashboard() {
         {dashboardLoading ? (
           <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 8 }).map((_, index) => (
-              <div key={index} className="h-36 animate-pulse rounded-[24px] bg-white/70" />
+              <div key={index} className="h-36 animate-pulse bg-[color:var(--surface)]" />
             ))}
           </div>
         ) : (
@@ -887,14 +887,14 @@ export default function Dashboard() {
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {skillGroups.map((group) => (
-                    <div key={group.category} className="rounded-[24px] border border-white/80 bg-white/75 p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)] backdrop-blur">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">{group.category}</p>
-                      <h3 className="mt-2 text-lg font-semibold text-stone-950">{group.label}</h3>
+                    <div key={group.category} className="rounded-[24px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5">
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--muted)]">{group.category}</p>
+                      <h3 className="mt-2 text-lg font-semibold text-[color:var(--text)]">{group.label}</h3>
                       <div className="mt-4 space-y-3">
                         {group.items.map((item) => (
-                          <div key={`${group.category}-${item.skill}`} className="flex items-center justify-between gap-4 rounded-2xl bg-stone-50 px-3 py-2">
-                            <span className="text-sm text-stone-700">{item.skill}</span>
-                            <span className="text-sm font-semibold text-stone-950">{item.count}</span>
+                          <div key={`${group.category}-${item.skill}`} className="flex items-center justify-between gap-4 rounded-2xl bg-[color:var(--bg-2)] px-3 py-2">
+                            <span className="text-sm text-[color:var(--text)]">{item.skill}</span>
+                            <span className="text-sm font-semibold text-[color:var(--text)]">{item.count}</span>
                           </div>
                         ))}
                       </div>
@@ -914,8 +914,8 @@ export default function Dashboard() {
                         onClick={() => setSelectedSkill(item.skill)}
                         className={`rounded-full px-4 py-2 text-sm transition ${
                           selectedSkill === item.skill
-                            ? "bg-stone-950 text-white"
-                            : "border border-stone-300 bg-white text-stone-700 hover:border-stone-400"
+                            ? "bg-[color:var(--bg)] text-white"
+                            : "border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] hover:border-[color:var(--border-strong)]"
                         }`}
                       >
                         {item.skill}
@@ -923,8 +923,8 @@ export default function Dashboard() {
                     ))}
                   </div>
 
-                  {skillCardLoading && <div className="rounded-[24px] bg-stone-100 p-6 text-sm text-stone-500">Загружаю карточку навыка...</div>}
-                  {!skillCardLoading && skillCardError && <div className="rounded-[24px] bg-rose-50 p-6 text-sm text-rose-700">{skillCardError}</div>}
+                  {skillCardLoading && <div className="rounded-[24px] bg-[color:var(--bg-2)] p-6 text-sm text-[color:var(--text-dim)]">Загружаю карточку навыка...</div>}
+                  {!skillCardLoading && skillCardError && <div className="rounded-[24px] bg-[rgba(255,130,114,0.08)] p-6 text-sm text-[color:var(--red)]">{skillCardError}</div>}
                   {!skillCardLoading && !skillCardError && skillCard && <SkillCardPanel card={skillCard} />}
                 </Panel>
               </div>
@@ -943,8 +943,8 @@ export default function Dashboard() {
                         onClick={() => setSalaryCategory(option.id)}
                         className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                           salaryCategory === option.id
-                            ? "bg-stone-950 text-white"
-                            : "border border-stone-300 bg-white/75 text-stone-700 hover:border-stone-400"
+                            ? "bg-[color:var(--bg)] text-white"
+                            : "border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] hover:border-[color:var(--border-strong)]"
                         }`}
                       >
                         {option.label}
@@ -955,7 +955,7 @@ export default function Dashboard() {
                   <button
                     onClick={downloadCsv}
                     disabled={csvLoading}
-                    className="rounded-full bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-full bg-[color:var(--green)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--green)] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {csvLoading ? "Готовлю CSV..." : "Экспорт CSV"}
                   </button>
@@ -1034,7 +1034,7 @@ export default function Dashboard() {
                       value={vacancyQuery}
                       onChange={(event) => setVacancyQuery(event.target.value)}
                       placeholder="Поиск по названию или компании"
-                      className="min-w-0 flex-1 rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-900 outline-none transition focus:border-stone-950"
+                      className="min-w-0 flex-1 rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-2)] px-4 py-3 text-sm text-[color:var(--text)] outline-none transition focus:border-[color:var(--border-strong)]"
                     />
                     <select
                       value={vacancySource}
@@ -1042,7 +1042,7 @@ export default function Dashboard() {
                         setVacancySource(event.target.value as "all" | "hh" | "telegram");
                         setVacanciesPageNumber(1);
                       }}
-                      className="rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 outline-none"
+                      className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm text-[color:var(--text)] outline-none"
                     >
                       <option value="all">Все источники</option>
                       <option value="hh">hh.kz</option>
@@ -1054,7 +1054,7 @@ export default function Dashboard() {
                         setVacancySkill(event.target.value);
                         setVacanciesPageNumber(1);
                       }}
-                      className="rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 outline-none"
+                      className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm text-[color:var(--text)] outline-none"
                     >
                       <option value="">Все навыки</option>
                       {skills.slice(0, 10).map((item) => (
@@ -1063,7 +1063,7 @@ export default function Dashboard() {
                         </option>
                       ))}
                     </select>
-                    <label className="flex items-center gap-2 rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-700">
+                    <label className="flex items-center gap-2 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm text-[color:var(--text)]">
                       <input
                         type="checkbox"
                         checked={vacancyWithSalary}
@@ -1071,13 +1071,13 @@ export default function Dashboard() {
                           setVacancyWithSalary(event.target.checked);
                           setVacanciesPageNumber(1);
                         }}
-                        className="h-4 w-4 rounded border-stone-300"
+                        className="h-4 w-4 rounded border-[color:var(--border)]"
                       />
                       Только с зарплатой
                     </label>
                     <button
                       type="submit"
-                      className="rounded-2xl bg-stone-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-800"
+                      className="rounded-2xl bg-[color:var(--bg)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--surface-2)]"
                     >
                       Найти
                     </button>
@@ -1086,46 +1086,46 @@ export default function Dashboard() {
                   <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
                     <div className="space-y-3">
                       {vacanciesLoading && (
-                        <div className="rounded-[24px] bg-stone-100 p-6 text-sm text-stone-500">Загружаю вакансии...</div>
+                        <div className="rounded-[24px] bg-[color:var(--bg-2)] p-6 text-sm text-[color:var(--text-dim)]">Загружаю вакансии...</div>
                       )}
                       {!vacanciesLoading &&
                         vacancies?.items.map((vacancy) => (
                           <button
                             key={vacancy.id}
                             onClick={() => setSelectedVacancy(vacancy)}
-                            className={`w-full rounded-[24px] border p-4 text-left transition ${
+                            className={`w-full border p-4 text-left transition ${
                               selectedVacancy?.id === vacancy.id
-                                ? "border-stone-950 bg-stone-950 text-white"
-                                : "border-stone-200 bg-stone-50 hover:border-stone-400"
+                                ? "border-[color:var(--border-strong)] bg-[color:var(--bg)] text-white"
+                                : "border-[color:var(--border)] bg-[color:var(--bg-2)] hover:border-[color:var(--border-strong)]"
                             }`}
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div>
                                 <div className="text-lg font-semibold">{vacancy.title}</div>
-                                <div className={`mt-1 text-sm ${selectedVacancy?.id === vacancy.id ? "text-stone-300" : "text-stone-500"}`}>
+                                <div className={`mt-1 text-sm ${selectedVacancy?.id === vacancy.id ? "text-[color:var(--text-dim)]" : "text-[color:var(--text-dim)]"}`}>
                                   {vacancy.company ?? "Компания не указана"} · {vacancy.area_name ?? "Регион не указан"}
                                 </div>
                               </div>
-                              <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${selectedVacancy?.id === vacancy.id ? "bg-white/10 text-white" : "bg-stone-200 text-stone-700"}`}>
+                              <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${selectedVacancy?.id === vacancy.id ? "bg-[color:var(--surface-2)] text-white" : "bg-[color:var(--border-strong)] text-[color:var(--text)]"}`}>
                                 {vacancy.source}
                               </span>
                             </div>
-                            <div className={`mt-3 text-sm ${selectedVacancy?.id === vacancy.id ? "text-stone-200" : "text-stone-600"}`}>
+                            <div className={`mt-3 text-sm ${selectedVacancy?.id === vacancy.id ? "text-[color:var(--text-dim)]" : "text-[color:var(--text-dim)]"}`}>
                               {formatVacancySalary(vacancy)}
                             </div>
                           </button>
                         ))}
 
                       {!vacanciesLoading && vacancies?.items.length === 0 && (
-                        <div className="rounded-[24px] bg-stone-100 p-6 text-sm text-stone-500">По этим фильтрам вакансий не найдено.</div>
+                        <div className="rounded-[24px] bg-[color:var(--bg-2)] p-6 text-sm text-[color:var(--text-dim)]">По этим фильтрам вакансий не найдено.</div>
                       )}
 
                       {vacancies && vacancies.pages > 1 && (
-                        <div className="flex items-center justify-between gap-3 rounded-[24px] bg-stone-100 px-4 py-3 text-sm text-stone-600">
+                        <div className="flex items-center justify-between gap-3 bg-[color:var(--bg-2)] px-4 py-3 text-sm text-[color:var(--text-dim)]">
                           <button
                             onClick={() => setVacanciesPageNumber((page) => Math.max(1, page - 1))}
                             disabled={vacancies.page === 1}
-                            className="rounded-full border border-stone-300 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-full border border-[color:var(--border)] px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Назад
                           </button>
@@ -1135,7 +1135,7 @@ export default function Dashboard() {
                           <button
                             onClick={() => setVacanciesPageNumber((page) => Math.min(vacancies.pages, page + 1))}
                             disabled={vacancies.page === vacancies.pages}
-                            className="rounded-full border border-stone-300 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-full border border-[color:var(--border)] px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Дальше
                           </button>
@@ -1182,14 +1182,14 @@ export default function Dashboard() {
                 >
                   <form onSubmit={runSalaryCalc} className="space-y-4">
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Навык *</label>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Навык *</label>
                       <input
                         value={salaryCalcSkill}
                         onChange={(e) => setSalaryCalcSkill(e.target.value)}
                         list="salary-calc-skills-list"
                         placeholder="Начни вводить: Python, Go, React..."
                         autoComplete="off"
-                        className="w-full rounded-[20px] border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none transition focus:border-stone-950"
+                        className="w-full border border-[color:var(--border)] bg-[color:var(--bg-2)] px-4 py-3 text-sm outline-none transition focus:border-[color:var(--border-strong)]"
                       />
                       <datalist id="salary-calc-skills-list">
                         {skillGroups.flatMap((g) => g.items).map((s) => (
@@ -1198,11 +1198,11 @@ export default function Dashboard() {
                       </datalist>
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Опыт</label>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Опыт</label>
                       <select
                         value={salaryCalcExp}
                         onChange={(e) => setSalaryCalcExp(e.target.value)}
-                        className="w-full rounded-[20px] border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none transition focus:border-stone-950"
+                        className="w-full border border-[color:var(--border)] bg-[color:var(--bg-2)] px-4 py-3 text-sm outline-none transition focus:border-[color:var(--border-strong)]"
                       >
                         <option value="">Любой</option>
                         <option value="noExperience">Без опыта</option>
@@ -1212,11 +1212,11 @@ export default function Dashboard() {
                       </select>
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Город</label>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Город</label>
                       <select
                         value={salaryCalcRegion}
                         onChange={(e) => setSalaryCalcRegion(e.target.value)}
-                        className="w-full rounded-[20px] border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none transition focus:border-stone-950"
+                        className="w-full border border-[color:var(--border)] bg-[color:var(--bg-2)] px-4 py-3 text-sm outline-none transition focus:border-[color:var(--border-strong)]"
                       >
                         <option value="">Любой город</option>
                         {regions.map((r) => (
@@ -1227,13 +1227,13 @@ export default function Dashboard() {
                     <button
                       type="submit"
                       disabled={salaryCalcLoading || !salaryCalcSkill.trim()}
-                      className="rounded-full bg-stone-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-full bg-[color:var(--bg)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {salaryCalcLoading ? "Считаю..." : "Рассчитать"}
                     </button>
                   </form>
                   {salaryCalcError && (
-                    <div className="mt-4 rounded-[20px] bg-rose-50 px-4 py-3 text-sm text-rose-700">{salaryCalcError}</div>
+                    <div className="mt-4 bg-[rgba(255,130,114,0.08)] px-4 py-3 text-sm text-[color:var(--red)]">{salaryCalcError}</div>
                   )}
                 </Panel>
 
@@ -1247,33 +1247,33 @@ export default function Dashboard() {
                       >
                         <div className="space-y-3">
                           <div className="grid grid-cols-2 gap-3">
-                            <div className="rounded-[20px] bg-stone-950 p-4 text-stone-50">
-                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Медиана</p>
+                            <div className="rounded-[20px] bg-[color:var(--bg)] p-4 text-[#fbf4df]">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--muted)]">Медиана</p>
                               <p className="mt-1.5 text-lg font-bold">{fmtSalary(salaryCalcResult.median_salary_kzt)}</p>
                             </div>
-                            <div className="rounded-[20px] bg-stone-100 p-4 text-stone-900">
-                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Средняя</p>
+                            <div className="rounded-[20px] bg-[color:var(--bg-2)] p-4 text-[color:var(--text)]">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Средняя</p>
                               <p className="mt-1.5 text-lg font-bold">{fmtSalary(salaryCalcResult.avg_salary_kzt)}</p>
                             </div>
                           </div>
 
-                          <div className="rounded-[20px] bg-teal-50 p-4">
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-600">Типичный диапазон</p>
-                            <p className="mt-1 text-sm text-teal-800">
+                          <div className="rounded-[20px] bg-[color:var(--bg-2)] p-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--green)]">Типичный диапазон</p>
+                            <p className="mt-1 text-sm text-[color:var(--green)]">
                               {fmtSalary(salaryCalcResult.p25_salary_kzt)}
-                              <span className="mx-2 text-teal-400">—</span>
+                              <span className="mx-2 text-[color:var(--green)]">—</span>
                               {fmtSalary(salaryCalcResult.p75_salary_kzt)}
                             </p>
-                            <p className="mt-1 text-xs text-teal-600">половина вакансий платит в этом диапазоне</p>
+                            <p className="mt-1 text-xs text-[color:var(--green)]">половина вакансий платит в этом диапазоне</p>
                           </div>
 
                           <div className="grid grid-cols-2 gap-3">
-                            <div className="rounded-[20px] bg-stone-100 p-4 text-stone-900">
-                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Минимум</p>
+                            <div className="rounded-[20px] bg-[color:var(--bg-2)] p-4 text-[color:var(--text)]">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Минимум</p>
                               <p className="mt-1.5 text-base font-bold">{fmtSalary(salaryCalcResult.min_salary_kzt)}</p>
                             </div>
-                            <div className="rounded-[20px] bg-stone-100 p-4 text-stone-900">
-                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Максимум</p>
+                            <div className="rounded-[20px] bg-[color:var(--bg-2)] p-4 text-[color:var(--text)]">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Максимум</p>
                               <p className="mt-1.5 text-base font-bold">{fmtSalary(salaryCalcResult.max_salary_kzt)}</p>
                             </div>
                           </div>
@@ -1288,12 +1288,12 @@ export default function Dashboard() {
                         >
                           <div className="space-y-2">
                             {salaryCalcResult.top_companies.map((company) => (
-                              <div key={company.company} className="flex items-center justify-between rounded-[16px] bg-stone-100 px-4 py-3">
+                              <div key={company.company} className="flex items-center justify-between bg-[color:var(--bg-2)] px-4 py-3">
                                 <div>
-                                  <p className="text-sm font-semibold text-stone-900">{company.company}</p>
-                                  <p className="text-xs text-stone-500">{fmtInt(company.vacancy_count)} вакансий</p>
+                                  <p className="text-sm font-semibold text-[color:var(--text)]">{company.company}</p>
+                                  <p className="text-xs text-[color:var(--text-dim)]">{fmtInt(company.vacancy_count)} вакансий</p>
                                 </div>
-                                <p className="text-sm font-bold text-teal-700">{fmtSalary(company.avg_salary_kzt)}</p>
+                                <p className="text-sm font-bold text-[color:var(--green)]">{fmtSalary(company.avg_salary_kzt)}</p>
                               </div>
                             ))}
                           </div>
@@ -1302,7 +1302,7 @@ export default function Dashboard() {
                     </>
                   )}
                   {!salaryCalcResult && !salaryCalcLoading && !salaryCalcError && (
-                    <div className="flex h-48 items-center justify-center rounded-[26px] border border-dashed border-stone-300 text-sm text-stone-400">
+                    <div className="flex h-48 items-center justify-center border border-dashed border-[color:var(--border)] text-sm text-[color:var(--muted)]">
                       Введи навык и нажми «Рассчитать»
                     </div>
                   )}
@@ -1319,7 +1319,7 @@ export default function Dashboard() {
                 >
                   <form onSubmit={runSkillGap} className="space-y-4">
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Добавить навык</label>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Добавить навык</label>
                       <div className="flex gap-2">
                         <input
                           value={skillGapInput}
@@ -1328,7 +1328,7 @@ export default function Dashboard() {
                           list="skill-gap-skills-list"
                           placeholder="Начни вводить: Python, Go..."
                           autoComplete="off"
-                          className="min-w-0 flex-1 rounded-[20px] border border-stone-300 bg-stone-50 px-4 py-3 text-sm outline-none transition focus:border-stone-950"
+                          className="min-w-0 flex-1 border border-[color:var(--border)] bg-[color:var(--bg-2)] px-4 py-3 text-sm outline-none transition focus:border-[color:var(--border-strong)]"
                         />
                         <datalist id="skill-gap-skills-list">
                           {skillGroups.flatMap((g) => g.items)
@@ -1339,7 +1339,7 @@ export default function Dashboard() {
                           type="button"
                           onClick={addSkillGapSkill}
                           disabled={!skillGapInput.trim()}
-                          className="flex-shrink-0 rounded-full border border-stone-300 bg-white px-4 py-3 text-sm font-semibold text-stone-700 transition hover:border-stone-950 hover:text-stone-950 disabled:opacity-40"
+                          className="flex-shrink-0 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm font-semibold text-[color:var(--text)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text)] disabled:opacity-40"
                         >
                           + Добавить
                         </button>
@@ -1351,13 +1351,13 @@ export default function Dashboard() {
                         {skillGapSelected.map((skill) => (
                           <span
                             key={skill}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-stone-950 px-3 py-1.5 text-sm font-medium text-white"
+                            className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--bg)] px-3 py-1.5 text-sm font-medium text-white"
                           >
                             {skill}
                             <button
                               type="button"
                               onClick={() => removeSkillGapSkill(skill)}
-                              className="text-stone-400 hover:text-white"
+                              className="text-[color:var(--muted)] hover:text-white"
                             >
                               ×
                             </button>
@@ -1369,13 +1369,13 @@ export default function Dashboard() {
                     <button
                       type="submit"
                       disabled={skillGapLoading || skillGapSelected.length === 0}
-                      className="rounded-full bg-stone-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-full bg-[color:var(--bg)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {skillGapLoading ? "Анализирую..." : `Проанализировать${skillGapSelected.length > 0 ? ` (${skillGapSelected.length})` : ""}`}
                     </button>
                   </form>
                   {skillGapError && (
-                    <div className="mt-4 rounded-[20px] bg-rose-50 px-4 py-3 text-sm text-rose-700">{skillGapError}</div>
+                    <div className="mt-4 bg-[rgba(255,130,114,0.08)] px-4 py-3 text-sm text-[color:var(--red)]">{skillGapError}</div>
                   )}
                 </Panel>
 
@@ -1387,13 +1387,13 @@ export default function Dashboard() {
                         title={`${skillGapResult.match_pct}% вакансий доступно`}
                         description={`${fmtInt(skillGapResult.matched_vacancies)} из ${fmtInt(skillGapResult.total_vacancies)} вакансий содержат хотя бы один твой навык`}
                       >
-                        <div className="h-4 overflow-hidden rounded-full bg-stone-200">
+                        <div className="h-4 overflow-hidden rounded-full bg-[color:var(--border-strong)]">
                           <div
-                            className="h-full rounded-full bg-teal-600 transition-all duration-700"
+                            className="h-full rounded-full bg-[color:var(--green)] transition-all duration-700"
                             style={{ width: `${Math.min(skillGapResult.match_pct, 100)}%` }}
                           />
                         </div>
-                        <p className="mt-2 text-right text-sm font-semibold text-teal-700">{skillGapResult.match_pct}%</p>
+                        <p className="mt-2 text-right text-sm font-semibold text-[color:var(--green)]">{skillGapResult.match_pct}%</p>
                       </Panel>
 
                       {skillGapResult.missing_skills.length > 0 && (
@@ -1404,20 +1404,20 @@ export default function Dashboard() {
                         >
                           <div className="space-y-2">
                             {skillGapResult.missing_skills.map((item: MissingSkill, index: number) => (
-                              <div key={item.skill} className="flex items-center gap-3 rounded-[16px] bg-stone-100 px-4 py-3">
-                                <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-stone-300 text-xs font-bold text-stone-700">
+                              <div key={item.skill} className="flex items-center gap-3 bg-[color:var(--bg-2)] px-4 py-3">
+                                <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--surface-2)] text-xs font-bold text-[color:var(--text)]">
                                   {index + 1}
                                 </span>
                                 <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-semibold text-stone-900">{item.skill}</p>
-                                  <p className="text-xs text-stone-500">
+                                  <p className="text-sm font-semibold text-[color:var(--text)]">{item.skill}</p>
+                                  <p className="text-xs text-[color:var(--text-dim)]">
                                     {item.avg_salary_kzt
                                       ? `ср. зарплата ${fmtSalary(item.avg_salary_kzt)}`
                                       : "зарплата не указана"}
                                   </p>
                                 </div>
                                 {item.extra_vacancies > 0 && (
-                                  <span className="flex-shrink-0 rounded-full bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-700">
+                                  <span className="flex-shrink-0 rounded-full bg-[rgba(164,228,123,0.12)] px-2.5 py-1 text-xs font-semibold text-[color:var(--green)]">
                                     +{fmtInt(item.extra_vacancies)} вакансий
                                   </span>
                                 )}
@@ -1429,7 +1429,7 @@ export default function Dashboard() {
                     </>
                   )}
                   {!skillGapResult && !skillGapLoading && !skillGapError && (
-                    <div className="flex h-48 items-center justify-center rounded-[26px] border border-dashed border-stone-300 text-sm text-stone-400">
+                    <div className="flex h-48 items-center justify-center border border-dashed border-[color:var(--border)] text-sm text-[color:var(--muted)]">
                       Добавь навыки и нажми «Проанализировать»
                     </div>
                   )}
@@ -1449,25 +1449,25 @@ export default function Dashboard() {
                       value={question}
                       onChange={(event) => setQuestion(event.target.value)}
                       placeholder="Например: чем Telegram рынок отличается от HH по Python-вакансиям?"
-                      className="min-h-36 w-full rounded-[24px] border border-stone-300 bg-stone-50 px-4 py-4 text-sm text-stone-900 outline-none transition focus:border-stone-950"
+                      className="min-h-36 w-full border border-[color:var(--border)] bg-[color:var(--bg-2)] px-4 py-4 text-sm text-[color:var(--text)] outline-none transition focus:border-[color:var(--border-strong)]"
                     />
                     <button
                       type="submit"
                       disabled={chatLoading || !question.trim()}
-                      className="rounded-full bg-stone-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-full bg-[color:var(--bg)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {chatLoading ? "AI анализирует..." : "Спросить AI"}
                     </button>
                   </form>
 
                   <div className="mt-6">
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">Подсказки для старта</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--muted)]">Подсказки для старта</p>
                     <div className="mt-3 space-y-2">
                       {chatExamples[source].map((example) => (
                         <button
                           key={example}
                           onClick={() => setQuestion(example)}
-                          className="block w-full rounded-2xl bg-stone-100 px-4 py-3 text-left text-sm text-stone-700 transition hover:bg-stone-200"
+                          className="block w-full rounded-2xl bg-[color:var(--bg-2)] px-4 py-3 text-left text-sm text-[color:var(--text)] transition hover:bg-[color:var(--border-strong)]"
                         >
                           {example}
                         </button>
@@ -1482,10 +1482,10 @@ export default function Dashboard() {
                     title="Результат AI-анализа"
                     description="Ответ и график теперь синхронизированы с выбранным источником."
                   >
-                    <div className="min-h-56 whitespace-pre-wrap rounded-[24px] bg-stone-950 px-5 py-5 text-sm leading-7 text-stone-100">
+                    <div className="min-h-56 whitespace-pre-wrap bg-[color:var(--bg)] px-5 py-5 text-sm leading-7 text-[color:var(--text)]">
                       {answer || (!chatLoading && "Здесь появится ответ после запроса.")}
                       {chatLoading && !answer && (
-                        <span className="inline-block h-4 w-2 animate-pulse rounded bg-amber-300 align-middle" />
+                        <span className="inline-block h-4 w-2 animate-pulse rounded bg-[color:var(--accent-bright)] align-middle" />
                       )}
                       <div ref={answerRef} />
                     </div>
@@ -1558,7 +1558,7 @@ function SourceMixCard({
       <div className="space-y-3">
         <SourceSplitRow label="HH" value={hh} tone="teal" />
         <SourceSplitRow label="Telegram" value={telegram} tone="amber" />
-        <div className="rounded-[22px] bg-stone-100 p-4 text-sm leading-6 text-stone-600">
+        <div className="rounded-[22px] bg-[color:var(--bg-2)] p-4 text-sm leading-6 text-[color:var(--text-dim)]">
           Общий split помогает быстро понять, насколько продукт всё ещё HH-centric и какой вес уже набрал Telegram-слой.
         </div>
       </div>
@@ -1575,7 +1575,7 @@ function SourceSplitRow({
   value: number;
   tone: "teal" | "amber";
 }) {
-  const classes = tone === "teal" ? "bg-teal-50 text-teal-900" : "bg-amber-50 text-amber-900";
+  const classes = tone === "teal" ? "bg-[color:var(--bg-2)] text-[color:var(--green)]" : "bg-[color:var(--bg-2)] text-[color:var(--accent)]";
   return (
     <div className={`rounded-[22px] ${classes} px-4 py-4`}>
       <div className="text-xs font-semibold uppercase tracking-[0.22em]">{label}</div>
@@ -1594,15 +1594,15 @@ function SourceNarrativeCard({
   accent: "teal" | "amber" | "navy";
 }) {
   const borderClass = {
-    teal: "border-teal-200 bg-teal-50/70",
-    amber: "border-amber-200 bg-amber-50/70",
-    navy: "border-blue-200 bg-blue-50/70",
+    teal: "border-[color:var(--green)] bg-[color:var(--bg-2)]",
+    amber: "border-[color:var(--accent-deep)] bg-[color:var(--bg-2)]",
+    navy: "border-blue-200 bg-[color:var(--bg-2)]",
   }[accent];
 
   return (
     <div className={`rounded-[24px] border ${borderClass} p-5`}>
-      <h3 className="text-lg font-semibold text-stone-950">{title}</h3>
-      <p className="mt-3 text-sm leading-6 text-stone-700">{text}</p>
+      <h3 className="text-lg font-semibold text-[color:var(--text)]">{title}</h3>
+      <p className="mt-3 text-sm leading-6 text-[color:var(--text)]">{text}</p>
     </div>
   );
 }
@@ -1651,12 +1651,12 @@ function SalariesChart({ data }: { data: Salary[] }) {
             if (!active || !payload?.length) return null;
             const d = payload[0]?.payload as Salary;
             return (
-              <div className="rounded-2xl border border-stone-200 bg-white px-4 py-3 text-xs shadow-lg">
-                <p className="mb-2 font-semibold text-stone-900">{d.skill}</p>
-                <p className="text-amber-700">Средняя: {fmtSalary(d.avg_salary_kzt)}</p>
-                <p className="text-teal-700">Медиана: {fmtSalary(d.median_salary_kzt)}</p>
-                <p className="mt-1 text-stone-400">Мин: {fmtSalary(d.min_salary_kzt)} · Макс: {fmtSalary(d.max_salary_kzt)}</p>
-                <p className="text-stone-400">Вакансий с зарплатой: {d.vacancy_count}</p>
+              <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-xs shadow-lg">
+                <p className="mb-2 font-semibold text-[color:var(--text)]">{d.skill}</p>
+                <p className="text-[color:var(--accent)]">Средняя: {fmtSalary(d.avg_salary_kzt)}</p>
+                <p className="text-[color:var(--green)]">Медиана: {fmtSalary(d.median_salary_kzt)}</p>
+                <p className="mt-1 text-[color:var(--muted)]">Мин: {fmtSalary(d.min_salary_kzt)} · Макс: {fmtSalary(d.max_salary_kzt)}</p>
+                <p className="text-[color:var(--muted)]">Вакансий с зарплатой: {d.vacancy_count}</p>
               </div>
             );
           }}
@@ -1703,9 +1703,9 @@ function SkillCompareChart({ data }: { data: SkillCompareItem[] }) {
 
       <div className="grid gap-3 md:grid-cols-3">
         {data.map((item) => (
-          <div key={item.skill} className="rounded-[22px] bg-stone-50 p-4">
-            <div className="text-sm font-semibold text-stone-950">{item.skill}</div>
-            <div className="mt-2 space-y-1 text-xs text-stone-600">
+          <div key={item.skill} className="rounded-[22px] bg-[color:var(--bg-2)] p-4">
+            <div className="text-sm font-semibold text-[color:var(--text)]">{item.skill}</div>
+            <div className="mt-2 space-y-1 text-xs text-[color:var(--text-dim)]">
               <div>Спрос: {fmtInt(item.vacancy_count)}</div>
               <div>Средняя: {item.avg_salary_kzt ? fmtSalary(item.avg_salary_kzt) : "нет данных"}</div>
               <div>Медиана: {item.median_salary_kzt ? fmtSalary(item.median_salary_kzt) : "нет данных"}</div>
@@ -1796,19 +1796,19 @@ function TrendingSkillsList({
         <button
           key={item.skill}
           onClick={() => onSelect(item.skill)}
-          className={`flex w-full items-center justify-between gap-4 rounded-[22px] border px-4 py-3 text-left transition ${
+          className={`flex w-full items-center justify-between gap-4 border px-4 py-3 text-left transition ${
             selectedSkill === item.skill
-              ? "border-stone-950 bg-stone-950 text-white"
-              : "border-stone-200 bg-stone-50 hover:border-stone-400"
+              ? "border-[color:var(--border-strong)] bg-[color:var(--bg)] text-white"
+              : "border-[color:var(--border)] bg-[color:var(--bg-2)] hover:border-[color:var(--border-strong)]"
           }`}
         >
           <div>
             <div className="text-sm font-semibold">{item.skill}</div>
-            <div className={`mt-1 text-xs ${selectedSkill === item.skill ? "text-stone-300" : "text-stone-500"}`}>
+            <div className={`mt-1 text-xs ${selectedSkill === item.skill ? "text-[color:var(--text-dim)]" : "text-[color:var(--text-dim)]"}`}>
               {item.category ?? "Без категории"} · сейчас {fmtInt(item.current_count)} · раньше {fmtInt(item.previous_count)}
             </div>
           </div>
-          <div className={`text-sm font-semibold ${item.delta >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+          <div className={`text-sm font-semibold ${item.delta >= 0 ? "text-[color:var(--green)]" : "text-[color:var(--red)]"}`}>
             {item.delta >= 0 ? "+" : ""}
             {item.delta} ({item.delta_pct.toFixed(1)}%)
           </div>
@@ -1820,18 +1820,18 @@ function TrendingSkillsList({
 
 function SkillCompareGrid({ data }: { data: SkillCompareItem[] }) {
   if (!data.length) {
-    return <div className="rounded-[22px] bg-stone-100 p-4 text-sm text-stone-500">Для compare пока недостаточно данных.</div>;
+    return <div className="rounded-[22px] bg-[color:var(--bg-2)] p-4 text-sm text-[color:var(--text-dim)]">Для compare пока недостаточно данных.</div>;
   }
 
   return (
     <div className="grid gap-3 md:grid-cols-3">
       {data.map((item) => (
-        <div key={item.skill} className="rounded-[24px] border border-stone-200 bg-white p-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">
+        <div key={item.skill} className="rounded-[24px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--muted)]">
             {item.category ?? "Без категории"}
           </div>
-          <div className="mt-2 text-xl font-semibold text-stone-950">{item.skill}</div>
-          <div className="mt-3 space-y-1 text-sm text-stone-600">
+          <div className="mt-2 text-xl font-semibold text-[color:var(--text)]">{item.skill}</div>
+          <div className="mt-3 space-y-1 text-sm text-[color:var(--text-dim)]">
             <div>Вакансий: {fmtInt(item.vacancy_count)}</div>
             <div>Средняя: {item.avg_salary_kzt ? fmtSalary(item.avg_salary_kzt) : "нет данных"}</div>
             <div>Медиана: {item.median_salary_kzt ? fmtSalary(item.median_salary_kzt) : "нет данных"}</div>
@@ -1881,15 +1881,15 @@ function SkillCardPanel({ card }: { card: ApiSkillCard }) {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <div className="rounded-[24px] bg-stone-50 p-4">
-          <div className="mb-3 text-sm font-semibold text-stone-950">Динамика по месяцам</div>
+        <div className="rounded-[24px] bg-[color:var(--bg-2)] p-4">
+          <div className="mb-3 text-sm font-semibold text-[color:var(--text)]">Динамика по месяцам</div>
           <TrendsChart data={card.monthly_trend} />
         </div>
-        <div className="rounded-[24px] bg-stone-50 p-4">
-          <div className="mb-3 text-sm font-semibold text-stone-950">Связанные навыки</div>
+        <div className="rounded-[24px] bg-[color:var(--bg-2)] p-4">
+          <div className="mb-3 text-sm font-semibold text-[color:var(--text)]">Связанные навыки</div>
           <div className="flex flex-wrap gap-2">
             {card.related_skills.map((item) => (
-              <div key={item.skill} className="rounded-full bg-white px-3 py-2 text-sm text-stone-700 shadow-sm">
+              <div key={item.skill} className="rounded-full bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)] shadow-sm">
                 {item.skill} · {fmtInt(item.count)}
               </div>
             ))}
@@ -1930,13 +1930,13 @@ function SimpleStatList({
   rows: { label: string; value: string }[];
 }) {
   return (
-    <div className="rounded-[24px] bg-stone-50 p-4">
-      <div className="mb-3 text-sm font-semibold text-stone-950">{title}</div>
+    <div className="rounded-[24px] bg-[color:var(--bg-2)] p-4">
+      <div className="mb-3 text-sm font-semibold text-[color:var(--text)]">{title}</div>
       <div className="space-y-3">
         {rows.map((row) => (
-          <div key={`${title}-${row.label}`} className="flex items-center justify-between gap-4 rounded-2xl bg-white px-4 py-3">
-            <span className="text-sm text-stone-700">{row.label}</span>
-            <span className="text-sm font-semibold text-stone-950">{row.value}</span>
+          <div key={`${title}-${row.label}`} className="flex items-center justify-between gap-4 rounded-2xl bg-[color:var(--surface)] px-4 py-3">
+            <span className="text-sm text-[color:var(--text)]">{row.label}</span>
+            <span className="text-sm font-semibold text-[color:var(--text)]">{row.value}</span>
           </div>
         ))}
       </div>
@@ -1946,20 +1946,20 @@ function SimpleStatList({
 
 function VacancyDetailPanel({ vacancy }: { vacancy: ApiVacancy | null }) {
   if (!vacancy) {
-    return <div className="rounded-[24px] bg-stone-100 p-6 text-sm text-stone-500">Выбери вакансию слева, чтобы увидеть детали.</div>;
+    return <div className="rounded-[24px] bg-[color:var(--bg-2)] p-6 text-sm text-[color:var(--text-dim)]">Выбери вакансию слева, чтобы увидеть детали.</div>;
   }
 
   return (
-    <div className="rounded-[28px] border border-stone-200 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.05)]">
+    <div className="rounded-[28px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">{vacancy.source}</div>
-          <h3 className="mt-2 text-2xl font-semibold text-stone-950">{vacancy.title}</h3>
-          <p className="mt-2 text-sm text-stone-600">
+          <div className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--muted)]">{vacancy.source}</div>
+          <h3 className="mt-2 text-2xl font-semibold text-[color:var(--text)]">{vacancy.title}</h3>
+          <p className="mt-2 text-sm text-[color:var(--text-dim)]">
             {vacancy.company ?? "Компания не указана"} · {vacancy.area_name ?? "Регион не указан"}
           </p>
         </div>
-        <div className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600">
+        <div className="rounded-full bg-[color:var(--bg-2)] px-3 py-1 text-xs font-semibold text-[color:var(--text-dim)]">
           {vacancy.published_at ? new Date(vacancy.published_at).toLocaleDateString("ru-RU") : "Дата не указана"}
         </div>
       </div>
@@ -1972,16 +1972,16 @@ function VacancyDetailPanel({ vacancy }: { vacancy: ApiVacancy | null }) {
       </div>
 
       <div className="mt-5">
-        <div className="text-sm font-semibold text-stone-950">Навыки</div>
+        <div className="text-sm font-semibold text-[color:var(--text)]">Навыки</div>
         <div className="mt-3 flex flex-wrap gap-2">
           {(vacancy.skills ?? []).length ? (
             vacancy.skills?.map((skill) => (
-              <span key={`${vacancy.id}-${skill}`} className="rounded-full bg-stone-100 px-3 py-2 text-sm text-stone-700">
+              <span key={`${vacancy.id}-${skill}`} className="rounded-full bg-[color:var(--bg-2)] px-3 py-2 text-sm text-[color:var(--text)]">
                 {skill}
               </span>
             ))
           ) : (
-            <span className="text-sm text-stone-500">Навыки не указаны</span>
+            <span className="text-sm text-[color:var(--text-dim)]">Навыки не указаны</span>
           )}
         </div>
       </div>
@@ -1991,9 +1991,9 @@ function VacancyDetailPanel({ vacancy }: { vacancy: ApiVacancy | null }) {
 
 function DetailBox({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[22px] bg-stone-50 px-4 py-4">
-      <div className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{label}</div>
-      <div className="mt-2 text-sm text-stone-800">{value}</div>
+    <div className="rounded-[22px] bg-[color:var(--bg-2)] px-4 py-4">
+      <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--muted)]">{label}</div>
+      <div className="mt-2 text-sm text-[color:var(--text)]">{value}</div>
     </div>
   );
 }
@@ -2079,7 +2079,7 @@ function DistributionChart({
 }) {
   return (
     <div>
-      <h3 className="mb-3 text-lg font-semibold text-stone-950">{title}</h3>
+      <h3 className="mb-3 text-lg font-semibold text-[color:var(--text)]">{title}</h3>
       <MiniDistributionChart data={data} tone={tone} />
     </div>
   );
