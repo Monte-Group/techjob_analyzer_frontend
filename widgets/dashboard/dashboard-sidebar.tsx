@@ -5,12 +5,12 @@ import { usePathname } from "next/navigation";
 
 const items: { href: string; label: string }[] = [
   { href: "/dashboard", label: "Обзор" },
+  { href: "/dashboard/profile", label: "Мой профиль" },
   { href: "/dashboard/skills", label: "Навыки" },
   { href: "/dashboard/salaries", label: "Зарплаты" },
   { href: "/dashboard/trends", label: "Тренды" },
   { href: "/dashboard/market", label: "Срез рынка" },
   { href: "/dashboard/calculator", label: "Калькулятор" },
-  { href: "/dashboard/skill-gap", label: "Скилл-гэп" },
 ];
 
 export function DashboardSidebar() {
@@ -36,7 +36,7 @@ export function DashboardSidebar() {
               href={item.href}
               className={`rounded-2xl px-4 py-2.5 text-sm font-medium transition ${
                 isActive
-                  ? "bg-[color:var(--bg)] text-white"
+                  ? "border border-[color:var(--border-strong)] bg-[color:var(--surface)] text-[color:var(--accent)] shadow-[0_12px_28px_-20px_rgba(124,108,255,0.55)]"
                   : "text-[color:var(--text-dim)] hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text)]"
               }`}
             >

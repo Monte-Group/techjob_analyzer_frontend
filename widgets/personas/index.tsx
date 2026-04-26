@@ -31,7 +31,7 @@ export default function Personas() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-[color:var(--border)]">
           {PERSONAS.map((p, i) => (
-            <div key={i} className="bg-[color:var(--bg)] p-8 md:p-10 relative">
+            <div key={i} className="bg-[color:var(--surface)] p-8 md:p-10 relative">
               <span className="font-mono text-[10px] tracking-[0.14em] text-[color:var(--muted)]">
                 0{i + 1}
               </span>

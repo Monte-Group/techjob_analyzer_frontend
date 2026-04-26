@@ -104,7 +104,12 @@ export function MetricCard({
   const accentColor = METRIC_ACCENT[accent];
 
   return (
-    <div className="panel-lift relative overflow-hidden p-5">
+    <div
+      className="relative overflow-hidden border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]"
+      style={{
+        backgroundImage: `linear-gradient(180deg, color-mix(in srgb, ${accentColor} 12%, transparent), transparent 44%)`,
+      }}
+    >
       <span
         className="absolute left-0 top-0 h-full w-[2px]"
         style={{ background: accentColor }}

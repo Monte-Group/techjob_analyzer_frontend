@@ -31,7 +31,7 @@ const DATA: Row[] = [
 
 const SERIES = [
   { key: "react",  label: "React / TS",   color: "#7c6cff" },
-  { key: "python", label: "Python",       color: "#fbf4df" },
+  { key: "python", label: "Python",       color: "#a59dff" },
   { key: "go",     label: "Go",           color: "#82c1f0" },
   { key: "devops", label: "DevOps / K8s", color: "#a4e47b" },
 ] as const;
@@ -66,35 +66,35 @@ export default function DemandChart() {
       <div className="h-[340px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={DATA} margin={{ top: 8, right: 12, left: -10, bottom: 0 }}>
-            <CartesianGrid stroke="rgba(251,244,223,0.06)" strokeDasharray="0" />
+            <CartesianGrid stroke="var(--border)" strokeDasharray="0" />
             <XAxis
               dataKey="m"
-              stroke="#817c70"
+              stroke="var(--text-dim)"
               fontSize={11}
               fontFamily="var(--font-mono)"
               tickLine={false}
-              axisLine={{ stroke: "#262629" }}
+              axisLine={{ stroke: "var(--border-strong)" }}
             />
             <YAxis
-              stroke="#817c70"
+              stroke="var(--text-dim)"
               fontSize={11}
               fontFamily="var(--font-mono)"
               tickLine={false}
-              axisLine={{ stroke: "#262629" }}
+              axisLine={{ stroke: "var(--border-strong)" }}
               width={42}
             />
             <Tooltip
               cursor={{ stroke: "#7c6cff", strokeWidth: 1, strokeDasharray: "2 3" }}
               contentStyle={{
-                background: "#0a0a0b",
-                border: "1px solid #35353a",
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
                 borderRadius: 0,
                 fontFamily: "var(--font-mono)",
                 fontSize: 11,
-                color: "#fbf4df",
+                color: "var(--text)",
                 padding: "8px 12px",
               }}
-              labelStyle={{ color: "#c4bcaa", marginBottom: 4 }}
+              labelStyle={{ color: "var(--text-dim)", marginBottom: 4 }}
               itemStyle={{ padding: 0 }}
             />
             <Legend iconType="square" wrapperStyle={{ display: "none" }} />
@@ -106,7 +106,7 @@ export default function DemandChart() {
                 stroke={s.color}
                 strokeWidth={s.key === "react" ? 2 : 1.3}
                 dot={false}
-                activeDot={{ r: 3, fill: s.color, stroke: "#0a0a0b", strokeWidth: 2 }}
+                activeDot={{ r: 3, fill: s.color, stroke: "var(--surface)", strokeWidth: 2 }}
                 animationDuration={900}
               />
             ))}

@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getMe } from "@/lib/api";
 import { Arrow } from "@/shared/ui/Arrow";
+import { ThemeToggle } from "@/shared/ui/theme-toggle";
 
 export default function Nav() {
   const [hasSession, setHasSession] = useState<boolean | null>(null);
@@ -37,7 +38,7 @@ export default function Nav() {
     <header
       className="sticky top-0 z-40 backdrop-blur-sm transition-colors"
       style={{
-        background: scrolled ? "rgba(24,24,27,0.82)" : "transparent",
+        background: scrolled ? "var(--nav-overlay)" : "transparent",
         borderBottom: scrolled
           ? "1px solid var(--border)"
           : "1px solid transparent",
@@ -91,6 +92,7 @@ export default function Nav() {
         </nav>
 
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           {hasSession ? (
             <Link href="/dashboard" className="btn-primary">
               Дашборд <Arrow />
@@ -99,7 +101,7 @@ export default function Nav() {
             <>
               <Link
                 href="/login"
-                className="hidden sm:inline-flex font-mono text-[11px] tracking-[0.12em] uppercase text-[color:var(--text-dim)] hover:text-[color:var(--text)]"
+                className="hidden sm:inline-flex font-mono text-[11px] tracking-[0.12em] uppercase text-[color:var(--accent)] hover:text-[color:var(--accent-bright)]"
               >
                 Войти
               </Link>

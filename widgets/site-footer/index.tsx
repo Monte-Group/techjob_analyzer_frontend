@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Image from "next/image";
 
 type Col = { title: string; links: [string, string][] };
@@ -36,7 +37,7 @@ const COLS: Col[] = [
 
 export default function SiteFooter() {
   return (
-    <footer className="hairline-t bg-[color:var(--bg-2)]">
+    <footer className="hairline-t bg-[linear-gradient(180deg,rgba(124,108,255,0.08),transparent_18%),var(--bg-2)]">
       <div className="mx-auto max-w-[1400px] px-6 md:px-10 py-14">
         <div className="grid grid-cols-2 md:grid-cols-12 gap-8">
           <div className="col-span-2 md:col-span-5">
@@ -86,9 +87,9 @@ export default function SiteFooter() {
         <div className="mt-14 pt-6 hairline-t flex flex-wrap items-center justify-between gap-3 font-mono text-[11px] tracking-[0.12em] uppercase text-[color:var(--muted)]">
           <span>© 2026 J — AI · Все права защищены</span>
           <div className="flex items-center gap-6">
-            <a href="/docs/privacy" className="hover:text-[color:var(--text)]">Политика</a>
-            <a href="/docs/terms" className="hover:text-[color:var(--text)]">Условия</a>
-            <a href="/docs/cookies" className="hover:text-[color:var(--text)]">Cookies</a>
+            <Link href="/docs/privacy" className="hover:text-[color:var(--text)]">Политика</Link>
+            <Link href="/docs/terms" className="hover:text-[color:var(--text)]">Условия</Link>
+            <Link href="/docs/cookies" className="hover:text-[color:var(--text)]">Cookies</Link>
             <span className="flex items-center gap-2">
               <span className="live-dot h-[6px] w-[6px] rounded-full bg-[color:var(--green)] inline-block" />
               systems · operational

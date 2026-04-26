@@ -28,7 +28,7 @@ export default function DashboardError({
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <button
             onClick={reset}
-            className="rounded-full bg-[color:var(--bg)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--surface-2)]"
+            className="rounded-full bg-[color:var(--bg)] px-5 py-2.5 text-sm font-semibold text-[color:var(--text)] transition hover:bg-[color:var(--surface-2)]"
           >
             Перезагрузить
           </button>

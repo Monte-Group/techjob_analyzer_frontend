@@ -4,34 +4,27 @@ import { startTransition, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
   Cell,
-  Legend,
   Line,
   LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
   Tooltip,
-  XAxis,
-  YAxis,
 } from "recharts";
 
 import {
+  getMarketPosition,
   exportAnalyticsCsv,
   getCompanies,
   getEmployment,
   getExperience,
   getMe,
-  logout as logoutRequest,
   getRegions,
   getSalaryCalc,
   getSalaryHistogram,
   getSkillCard,
   getSkillBreakdown,
-  getSkillGap,
   getSkillsCompare,
   getSkills,
   getSalaries,
@@ -41,56 +34,58 @@ import {
   listParseRuns,
   listVacancies,
   triggerParse,
+  upsertProfile,
+  type BestRegion,
   type CompanyStat,
   type CurrentUser,
   type LabeledCount,
+  type MarketPosition,
   type MissingSkill,
   type MonthlyTrend as Trend,
   type Page as ApiPage,
   type ParseRun,
+  type ProfileScoreBreakdown,
   type RegionStat,
   type SalaryBucket,
   type SalaryCalcResult,
   type SalaryRow as Salary,
+  type SalaryPercentile,
   type SkillCard as ApiSkillCard,
   type SkillCompareItem,
   type SkillCount as Skill,
-  type SkillGapResult,
   type SkillGroup,
   type Summary,
   type TrendingSkill,
+  type UserProfile,
   type Vacancy as ApiVacancy,
   type VacancySource,
 } from "@/lib/api";
-import { ActionButton, MetricCard, Panel } from "@/widgets/dashboard/primitives";
+import {
+  AIChatChart,
+  CompaniesChart,
+  chartTitle,
+  MiniDistributionChart,
+  RegionsChart,
+  SalariesChart,
+  SalaryHistogramChart,
+  SkillsChart,
+  TrendsChart,
+  type ChartPayload,
+} from "@/widgets/dashboard/ai-chat-charts";
+import { MetricCard, Panel } from "@/widgets/dashboard/primitives";
 import { EmptyState } from "@/widgets/dashboard/empty-state";
 
-interface ChartPayload {
-  type: "skills" | "salaries" | "trends" | "regions" | "experience" | "employment" | "companies" | "salary_histogram" | "skill_compare" | "generic_bar";
-  data: Skill[] | Salary[] | Trend[] | RegionStat[] | CompanyStat[] | LabeledCount[] | SalaryBucket[] | SkillCompareItem[] | { label: string; value: number }[];
-}
-
-type TabId = "overview" | "skills" | "salaries" | "trends" | "market" | "ai" | "salary-calc" | "skill-gap";
-
-const tabToPath: Record<TabId, string> = {
-  overview: "/dashboard",
-  skills: "/dashboard/skills",
-  salaries: "/dashboard/salaries",
-  trends: "/dashboard/trends",
-  market: "/dashboard/market",
-  "salary-calc": "/dashboard/calculator",
-  "skill-gap": "/dashboard/skill-gap",
-  ai: "/dashboard",
-};
+type TabId = "overview" | "profile" | "skills" | "salaries" | "trends" | "market" | "ai" | "salary-calc";
 
 const pathToTab: Record<string, TabId> = {
   "/dashboard": "overview",
+  "/dashboard/profile": "profile",
   "/dashboard/skills": "skills",
   "/dashboard/salaries": "salaries",
   "/dashboard/trends": "trends",
   "/dashboard/market": "market",
   "/dashboard/calculator": "salary-calc",
-  "/dashboard/skill-gap": "skill-gap",
+  "/dashboard/skill-gap": "profile",
 };
 
 const sourceOptions: { id: VacancySource; label: string; note: string }[] = [
@@ -103,12 +98,6 @@ const sourceTitles: Record<VacancySource, string> = {
   hh: "HH как аналитическое ядро",
   telegram: "Telegram как живой слой рынка",
   all: "Сводная картина по двум источникам",
-};
-
-const sourceDescriptions: Record<VacancySource, string> = {
-  hh: "Используй этот режим для устойчивой аналитики, зарплатных сравнений и структурированных ответов AI.",
-  telegram: "Используй этот режим, чтобы смотреть сигналы из каналов, живые роли и менее формальные требования.",
-  all: "Используй этот режим для общей картины, но помни: HH и Telegram имеют разную структуру и качество данных.",
 };
 
 const chatExamples: Record<VacancySource, string[]> = {
@@ -129,11 +118,16 @@ const chatExamples: Record<VacancySource, string[]> = {
   ],
 };
 
-const chartColors = ["#0f766e", "#f59e0b", "#1d4ed8", "#dc2626", "#7c3aed", "#0891b2"];
-
 const fmtInt = (value: number) => new Intl.NumberFormat("ru-RU").format(value);
 const fmtSalary = (value: number) => `${new Intl.NumberFormat("ru-KZ", { maximumFractionDigits: 0 }).format(value)} ₸`;
 const clientBackendBase = process.env.NEXT_PUBLIC_API_URL ?? "/api-proxy";
+const experienceOptions = [
+  { value: "", label: "Любой уровень" },
+  { value: "noExperience", label: "Без опыта" },
+  { value: "between1And3", label: "1–3 года" },
+  { value: "between3And6", label: "3–6 лет" },
+  { value: "moreThan6", label: "6+ лет" },
+];
 
 export default function DashboardClient() {
   const router = useRouter();
@@ -142,7 +136,6 @@ export default function DashboardClient() {
 
   const [source, setSource] = useState<VacancySource>("hh");
   const activeTab = pathToTab[pathname] ?? "overview";
-  const setActiveTab = (id: TabId) => router.push(tabToPath[id]);
   const [salaryCategory, setSalaryCategory] = useState("all");
 
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -181,9 +174,13 @@ export default function DashboardClient() {
 
   const [skillGapInput, setSkillGapInput] = useState("");
   const [skillGapSelected, setSkillGapSelected] = useState<string[]>([]);
-  const [skillGapResult, setSkillGapResult] = useState<SkillGapResult | null>(null);
-  const [skillGapLoading, setSkillGapLoading] = useState(false);
-  const [skillGapError, setSkillGapError] = useState("");
+  const [profileTargetRole, setProfileTargetRole] = useState("");
+  const [profileExperienceLevel, setProfileExperienceLevel] = useState("");
+  const [profileSalaryExpectation, setProfileSalaryExpectation] = useState("");
+  const [marketPosition, setMarketPosition] = useState<MarketPosition | null>(null);
+  const [marketPositionLoading, setMarketPositionLoading] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState("");
 
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
@@ -204,6 +201,10 @@ export default function DashboardClient() {
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const skillChips = [...skills.slice(0, 6), ...trendingSkills.slice(0, 6).map((item) => ({ skill: item.skill, count: item.current_count }))]
     .filter((item, index, items) => items.findIndex((candidate) => candidate.skill === item.skill) === index);
+  const profileStarterSkills = [...skills.slice(0, 8), ...trendingSkills.slice(0, 8).map((item) => ({ skill: item.skill, count: item.current_count }))]
+    .filter((item, index, items) => items.findIndex((candidate) => candidate.skill === item.skill) === index)
+    .filter((item) => !skillGapSelected.includes(item.skill))
+    .slice(0, 8);
 
   async function loadParseRuns() {
     setParseRunsLoading(true);
@@ -360,6 +361,23 @@ export default function DashboardClient() {
     setSalaries(rows.slice(0, 12));
   }
 
+  async function loadMarketProfile() {
+    setMarketPositionLoading(true);
+    setProfileError("");
+    try {
+      const position = await getMarketPosition();
+      setMarketPosition(position);
+      setSkillGapSelected(position.profile.skills ?? []);
+      setProfileTargetRole(position.profile.target_role ?? "");
+      setProfileExperienceLevel(position.profile.experience_level ?? "");
+      setProfileSalaryExpectation(position.profile.salary_expectation ? String(position.profile.salary_expectation) : "");
+    } catch {
+      setProfileError("Профиль пока не удалось загрузить.");
+    } finally {
+      setMarketPositionLoading(false);
+    }
+  }
+
   useEffect(() => {
     let active = true;
 
@@ -400,6 +418,13 @@ export default function DashboardClient() {
       void loadSalaries(source, salaryCategory);
     });
   }, [authLoading, currentUser, salaryCategory, source]);
+
+  useEffect(() => {
+    if (authLoading || !currentUser) return;
+    startTransition(() => {
+      void loadMarketProfile();
+    });
+  }, [authLoading, currentUser]);
 
   useEffect(() => {
     if (authLoading || !currentUser || !selectedSkill) return;
@@ -489,19 +514,28 @@ export default function DashboardClient() {
     setSkillGapSelected((prev) => prev.filter((s) => s !== skill));
   }
 
-  async function runSkillGap(event: React.FormEvent) {
+  async function saveProfile(event: React.FormEvent) {
     event.preventDefault();
-    if (!skillGapSelected.length) return;
-    setSkillGapLoading(true);
-    setSkillGapError("");
-    setSkillGapResult(null);
+    if (!skillGapSelected.length) {
+      setProfileError("Добавь хотя бы один навык.");
+      return;
+    }
+    setProfileSaving(true);
+    setProfileError("");
     try {
-      const result = await getSkillGap(skillGapSelected, source);
-      setSkillGapResult(result);
+      const payload: UserProfile = {
+        skills: skillGapSelected,
+        experience_level: profileExperienceLevel || null,
+        salary_expectation: profileSalaryExpectation ? Number(profileSalaryExpectation) : null,
+        target_role: profileTargetRole.trim() || null,
+      };
+      await upsertProfile(payload);
+      await loadMarketProfile();
+      toast.success("Профиль сохранён");
     } catch {
-      setSkillGapError("Ошибка при анализе навыков.");
+      setProfileError("Не удалось сохранить профиль.");
     } finally {
-      setSkillGapLoading(false);
+      setProfileSaving(false);
     }
   }
 
@@ -562,16 +596,6 @@ export default function DashboardClient() {
     }
   }
 
-  async function logout() {
-    try {
-      await logoutRequest();
-    } catch {
-      // ignore logout transport errors and clear legacy client state
-    }
-    localStorage.removeItem("token");
-    router.replace("/login");
-  }
-
   async function downloadCsv() {
     setCsvLoading(true);
     try {
@@ -616,7 +640,7 @@ export default function DashboardClient() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 pb-10 pt-6 sm:px-6 lg:px-8">
         <header className="rounded-[28px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5 md:p-7">
-          <div className="rounded-[26px] bg-[color:var(--bg)] px-5 py-4 text-[#fbf4df]">
+          <div className="rounded-[26px] border border-[color:var(--border)] bg-[linear-gradient(135deg,rgba(124,108,255,0.14),rgba(124,108,255,0.03)_44%,var(--surface))] px-5 py-4 text-[color:var(--text)]">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
                 {sourceOptions.map((option) => (
@@ -625,8 +649,8 @@ export default function DashboardClient() {
                     onClick={() => setSource(option.id)}
                     className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                       source === option.id
-                        ? "bg-[color:var(--surface)] text-[color:var(--text)]"
-                        : "bg-[color:var(--surface-2)] text-[color:var(--text-dim)] hover:bg-[color:var(--surface-2)] hover:text-white"
+                        ? "bg-[color:var(--surface)] text-[color:var(--accent)] shadow-[0_10px_25px_-18px_rgba(124,108,255,0.7)]"
+                        : "border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text-dim)] hover:border-[color:var(--border-strong)] hover:text-[color:var(--text)]"
                     }`}
                   >
                     {option.label}
@@ -639,7 +663,7 @@ export default function DashboardClient() {
                     setShowAdminPanel((v) => !v);
                     if (!showAdminPanel) void loadParseRuns();
                   }}
-                  className="rounded-full border border-[color:var(--surface-2)] px-4 py-2 text-sm text-[color:var(--text-dim)] transition hover:border-[color:var(--border-strong)] hover:text-white"
+                  className="rounded-full border border-[color:var(--surface-2)] px-4 py-2 text-sm text-[color:var(--text-dim)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text)]"
                 >
                   {showAdminPanel ? "Скрыть админ" : "Админ"}
                 </button>
@@ -651,7 +675,7 @@ export default function DashboardClient() {
             </div>
           </div>
           {currentUser?.is_admin && showAdminPanel && (
-            <div className="mt-6 border border-[color:var(--border)] bg-[color:var(--bg-2)] p-5">
+            <div className="mt-6 rounded-[26px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-[0_18px_40px_-32px_rgba(50,32,118,0.2)]">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--accent)]">Панель администратора</p>
@@ -661,14 +685,14 @@ export default function DashboardClient() {
                   <button
                     onClick={() => void handleTriggerParse("hh")}
                     disabled={!!parseTriggerLoading || !!activeParseRunId}
-                    className="rounded-full bg-[color:var(--bg)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2.5 text-sm font-semibold text-[color:var(--text)] transition hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {parseTriggerLoading === "hh" ? "Запускаю HH..." : "Запустить HH"}
                   </button>
                   <button
                     onClick={() => void handleTriggerParse("telegram")}
                     disabled={!!parseTriggerLoading || !!activeParseRunId}
-                    className="rounded-full bg-[color:var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--bg-2)]0 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-full bg-[color:var(--accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_28px_-16px_rgba(124,108,255,0.75)] transition hover:bg-[color:var(--accent-bright)] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {parseTriggerLoading === "telegram" ? "Запускаю TG..." : "Запустить Telegram"}
                   </button>
@@ -687,8 +711,8 @@ export default function DashboardClient() {
               )}
 
               {activeParseRunId && (
-                <div className="mt-3 flex items-center gap-3 bg-[color:var(--bg-2)] px-4 py-3 text-sm text-[color:var(--green)]">
-                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[color:var(--bg-2)]0" />
+                <div className="mt-3 flex items-center gap-3 rounded-2xl border border-[rgba(46,139,98,0.18)] bg-[rgba(46,139,98,0.08)] px-4 py-3 text-sm text-[color:var(--green)]">
+                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[color:var(--green)]" />
                   {parseStreamStatus}
                 </div>
               )}
@@ -703,17 +727,21 @@ export default function DashboardClient() {
                     {parseRuns.slice(0, 8).map((run) => (
                       <div
                         key={run.id}
-                        className={`flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm ${
+                        className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm ${
                           run.status === "done"
-                            ? "bg-[color:var(--bg-2)] text-[color:var(--green)]"
+                            ? "border-[rgba(46,139,98,0.16)] bg-[rgba(46,139,98,0.06)] text-[color:var(--text)]"
                             : run.status === "failed"
-                              ? "bg-[rgba(255,130,114,0.08)] text-[color:var(--red)]"
-                              : "bg-[color:var(--bg-2)] text-[color:var(--accent)]"
+                              ? "border-[rgba(205,91,80,0.16)] bg-[rgba(205,91,80,0.06)] text-[color:var(--text)]"
+                              : "border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)]"
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <span className={`rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${
-                            run.status === "done" ? "bg-[rgba(164,228,123,0.2)]" : run.status === "failed" ? "bg-[rgba(255,130,114,0.2)]" : "bg-[color:var(--accent)]"
+                            run.status === "done"
+                              ? "bg-[rgba(164,228,123,0.2)] text-[color:var(--green)]"
+                              : run.status === "failed"
+                                ? "bg-[rgba(255,130,114,0.2)] text-[color:var(--red)]"
+                                : "bg-[color:var(--accent)] text-white"
                           }`}>
                             {run.status}
                           </span>
@@ -879,7 +907,7 @@ export default function DashboardClient() {
                         onClick={() => setSelectedSkill(item.skill)}
                         className={`rounded-full px-4 py-2 text-sm transition ${
                           selectedSkill === item.skill
-                            ? "bg-[color:var(--bg)] text-white"
+                            ? "border border-[color:var(--border-strong)] bg-[color:var(--surface)] text-[color:var(--accent)] shadow-[0_12px_28px_-20px_rgba(124,108,255,0.55)]"
                             : "border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] hover:border-[color:var(--border-strong)]"
                         }`}
                       >
@@ -908,7 +936,7 @@ export default function DashboardClient() {
                         onClick={() => setSalaryCategory(option.id)}
                         className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                           salaryCategory === option.id
-                            ? "bg-[color:var(--bg)] text-white"
+                            ? "border border-[color:var(--border-strong)] bg-[color:var(--surface)] text-[color:var(--accent)] shadow-[0_12px_28px_-20px_rgba(124,108,255,0.55)]"
                             : "border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] hover:border-[color:var(--border-strong)]"
                         }`}
                       >
@@ -1042,7 +1070,7 @@ export default function DashboardClient() {
                     </label>
                     <button
                       type="submit"
-                      className="rounded-2xl bg-[color:var(--bg)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--surface-2)]"
+                      className="rounded-2xl bg-[color:var(--bg)] px-5 py-3 text-sm font-semibold text-[color:var(--text)] transition hover:bg-[color:var(--surface-2)]"
                     >
                       Найти
                     </button>
@@ -1051,17 +1079,17 @@ export default function DashboardClient() {
                   <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
                     <div className="space-y-3">
                       {vacanciesLoading && (
-                        <div className="rounded-[24px] bg-[color:var(--bg-2)] p-6 text-sm text-[color:var(--text-dim)]">Загружаю вакансии...</div>
+                        <div className="rounded-[24px] border border-[color:var(--border)] bg-[color:var(--surface)] p-6 text-sm text-[color:var(--text-dim)]">Загружаю вакансии...</div>
                       )}
                       {!vacanciesLoading &&
                         vacancies?.items.map((vacancy) => (
                           <button
                             key={vacancy.id}
                             onClick={() => setSelectedVacancy(vacancy)}
-                            className={`w-full border p-4 text-left transition ${
+                            className={`w-full rounded-[24px] border p-4 text-left transition ${
                               selectedVacancy?.id === vacancy.id
-                                ? "border-[color:var(--border-strong)] bg-[color:var(--bg)] text-white"
-                                : "border-[color:var(--border)] bg-[color:var(--bg-2)] hover:border-[color:var(--border-strong)]"
+                                ? "border-[color:var(--border-strong)] bg-[linear-gradient(135deg,rgba(124,108,255,0.08),rgba(124,108,255,0.015)_42%,var(--surface))] text-[color:var(--text)] shadow-[0_18px_36px_-24px_rgba(124,108,255,0.46)]"
+                                : "border-[color:var(--border)] bg-[color:var(--surface)] hover:border-[color:var(--border-strong)] hover:shadow-[0_16px_34px_-28px_rgba(50,32,118,0.24)]"
                             }`}
                           >
                             <div className="flex items-start justify-between gap-4">
@@ -1071,7 +1099,7 @@ export default function DashboardClient() {
                                   {vacancy.company ?? "Компания не указана"} · {vacancy.area_name ?? "Регион не указан"}
                                 </div>
                               </div>
-                              <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${selectedVacancy?.id === vacancy.id ? "bg-[color:var(--surface-2)] text-white" : "bg-[color:var(--border-strong)] text-[color:var(--text)]"}`}>
+                              <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${selectedVacancy?.id === vacancy.id ? "bg-[color:var(--accent)] text-white" : "bg-[color:var(--surface-2)] text-[color:var(--accent-deep)]"}`}>
                                 {vacancy.source}
                               </span>
                             </div>
@@ -1089,7 +1117,7 @@ export default function DashboardClient() {
                       )}
 
                       {vacancies && vacancies.pages > 1 && (
-                        <div className="flex items-center justify-between gap-3 bg-[color:var(--bg-2)] px-4 py-3 text-sm text-[color:var(--text-dim)]">
+                        <div className="flex items-center justify-between gap-3 rounded-[22px] border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm text-[color:var(--text-dim)]">
                           <button
                             onClick={() => setVacanciesPageNumber((page) => Math.max(1, page - 1))}
                             disabled={vacancies.page === 1}
@@ -1195,7 +1223,7 @@ export default function DashboardClient() {
                     <button
                       type="submit"
                       disabled={salaryCalcLoading || !salaryCalcSkill.trim()}
-                      className="rounded-full bg-[color:var(--bg)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-full bg-[color:var(--bg)] px-5 py-3 text-sm font-semibold text-[color:var(--text)] transition hover:bg-[color:var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {salaryCalcLoading ? "Считаю..." : "Рассчитать"}
                     </button>
@@ -1215,7 +1243,7 @@ export default function DashboardClient() {
                       >
                         <div className="space-y-3">
                           <div className="grid grid-cols-2 gap-3">
-                            <div className="rounded-[20px] bg-[color:var(--bg)] p-4 text-[#fbf4df]">
+                            <div className="rounded-[20px] bg-[color:var(--bg)] p-4 text-[color:var(--text)]">
                               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--muted)]">Медиана</p>
                               <p className="mt-1.5 text-lg font-bold">{fmtSalary(salaryCalcResult.median_salary_kzt)}</p>
                             </div>
@@ -1280,14 +1308,80 @@ export default function DashboardClient() {
               </div>
             )}
 
-            {activeTab === "skill-gap" && (
-              <div className="grid gap-6 xl:grid-cols-[1fr_1.4fr]">
+            {activeTab === "profile" && (
+              <div className="space-y-6">
+                <section className="rounded-[28px] border border-[color:var(--border)] bg-[linear-gradient(135deg,rgba(124,108,255,0.14),rgba(124,108,255,0.03)_48%,var(--surface))] p-6 md:p-7">
+                  <p className="eyebrow text-[color:var(--accent)]">Профиль кандидата</p>
+                  <div className="mt-3 grid gap-5 xl:grid-cols-[1.25fr_0.75fr] xl:items-end">
+                    <div>
+                      <h2 className="medium text-[color:var(--text)]">Собери свой рыночный профиль</h2>
+                      <p className="mt-3 max-w-3xl text-sm leading-7 text-[color:var(--text-dim)]">
+                        Это персональный слой поверх общей аналитики. Здесь ты фиксируешь свой стек и ожидания, а система считает реальное покрытие рынка, зарплатную позицию и приоритет навыков для роста.
+                      </p>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-1">
+                      <div className="rounded-[22px] border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-4">
+                        <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--muted)]">Навыки в профиле</div>
+                        <div className="mt-2 text-2xl font-semibold text-[color:var(--text)]">{fmtInt(skillGapSelected.length)}</div>
+                      </div>
+                      <div className="rounded-[22px] border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-4">
+                        <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--muted)]">Целевая роль</div>
+                        <div className="mt-2 text-sm font-semibold text-[color:var(--text)]">{profileTargetRole || "Не указана"}</div>
+                      </div>
+                      <div className="rounded-[22px] border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-4">
+                        <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--muted)]">Ожидание</div>
+                        <div className="mt-2 text-sm font-semibold text-[color:var(--text)]">
+                          {profileSalaryExpectation ? fmtSalary(Number(profileSalaryExpectation)) : "Не указано"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <div className="grid items-start gap-6 xl:grid-cols-[1fr_1.4fr]">
                 <Panel
-                  eyebrow="Анализ скилл-гэпа"
-                  title="Сколько вакансий тебе доступно?"
-                  description="Введи свои навыки — узнаешь, какой процент рынка ты покрываешь и что стоит изучить дальше."
+                  eyebrow="Мой профиль"
+                  title="Входные данные для анализа"
+                  description="Заполни профиль один раз. После этого блок справа будет обновляться как твой персональный market dashboard."
                 >
-                  <form onSubmit={runSkillGap} className="space-y-4">
+                  <form onSubmit={saveProfile} className="space-y-4">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Целевая роль</label>
+                      <input
+                        value={profileTargetRole}
+                        onChange={(e) => setProfileTargetRole(e.target.value)}
+                        placeholder="Например: Backend Engineer"
+                        className="w-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm outline-none transition focus:border-[color:var(--border-strong)]"
+                      />
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Опыт</label>
+                        <select
+                          value={profileExperienceLevel}
+                          onChange={(e) => setProfileExperienceLevel(e.target.value)}
+                          className="w-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm outline-none transition focus:border-[color:var(--border-strong)]"
+                        >
+                          {experienceOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Ожидание по зарплате</label>
+                        <input
+                          value={profileSalaryExpectation}
+                          onChange={(e) => setProfileSalaryExpectation(e.target.value.replace(/[^\d]/g, ""))}
+                          placeholder="Например: 900000"
+                          inputMode="numeric"
+                          className="w-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm outline-none transition focus:border-[color:var(--border-strong)]"
+                        />
+                      </div>
+                    </div>
+
                     <div>
                       <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Добавить навык</label>
                       <div className="flex gap-2">
@@ -1314,6 +1408,20 @@ export default function DashboardClient() {
                           + Добавить
                         </button>
                       </div>
+                      {profileStarterSkills.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {profileStarterSkills.map((item) => (
+                            <button
+                              key={`starter-${item.skill}`}
+                              type="button"
+                              onClick={() => setSkillGapSelected((prev) => [...prev, item.skill])}
+                              className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-1.5 text-xs font-semibold text-[color:var(--text-dim)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--accent)]"
+                            >
+                              + {item.skill}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {skillGapSelected.length > 0 && (
@@ -1321,13 +1429,13 @@ export default function DashboardClient() {
                         {skillGapSelected.map((skill) => (
                           <span
                             key={skill}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--bg)] px-3 py-1.5 text-sm font-medium text-white"
+                            className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--bg)] px-3 py-1.5 text-sm font-medium text-[color:var(--text)]"
                           >
                             {skill}
                             <button
                               type="button"
                               onClick={() => removeSkillGapSkill(skill)}
-                              className="text-[color:var(--muted)] hover:text-white"
+                              className="text-[color:var(--muted)] hover:text-[color:var(--text)]"
                             >
                               ×
                             </button>
@@ -1336,45 +1444,116 @@ export default function DashboardClient() {
                       </div>
                     )}
 
-                    <button
-                      type="submit"
-                      disabled={skillGapLoading || skillGapSelected.length === 0}
-                      className="rounded-full bg-[color:var(--bg)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {skillGapLoading ? "Анализирую..." : `Проанализировать${skillGapSelected.length > 0 ? ` (${skillGapSelected.length})` : ""}`}
-                    </button>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="submit"
+                        disabled={profileSaving || skillGapSelected.length === 0}
+                        className="rounded-full bg-[color:var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--accent-bright)] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {profileSaving ? "Сохраняю..." : "Сохранить и пересчитать"}
+                      </button>
+                      {currentUser && (
+                        <span className="text-sm text-[color:var(--text-dim)]">
+                          Аккаунт: {currentUser.email}
+                        </span>
+                      )}
+                    </div>
                   </form>
-                  {skillGapError && (
-                    <div className="mt-4 bg-[rgba(255,130,114,0.08)] px-4 py-3 text-sm text-[color:var(--red)]">{skillGapError}</div>
+                  {profileError && (
+                    <div className="mt-4 bg-[rgba(255,130,114,0.08)] px-4 py-3 text-sm text-[color:var(--red)]">{profileError}</div>
                   )}
                 </Panel>
 
                 <div className="space-y-6">
-                  {skillGapResult && (
+                  {marketPositionLoading && (
+                    <div className="rounded-[24px] border border-[color:var(--border)] bg-[color:var(--surface)] p-6 text-sm text-[color:var(--text-dim)]">
+                      Считаю твою позицию на рынке...
+                    </div>
+                  )}
+
+                  {!marketPositionLoading && marketPosition?.has_profile && marketPosition.score && (
                     <>
+                      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <MetricCard
+                          label="Market score"
+                          value={`${marketPosition.score.total}/100`}
+                          detail="Итоговая позиция по спросу, зарплате и покрытию"
+                          accent="teal"
+                        />
+                        <MetricCard
+                          label="Покрытие"
+                          value={`${marketPosition.skill_gap?.match_pct ?? 0}%`}
+                          detail={`${fmtInt(marketPosition.skill_gap?.matched_vacancies ?? 0)} вакансий доступны`}
+                          accent="amber"
+                        />
+                        <MetricCard
+                          label="Твоя медиана"
+                          value={marketPosition.score.user_median_salary ? fmtSalary(marketPosition.score.user_median_salary) : "н/д"}
+                          detail={marketPosition.score.market_median_salary ? `Рынок: ${fmtSalary(marketPosition.score.market_median_salary)}` : "Нет данных по зарплатам"}
+                          accent="navy"
+                        />
+                        <MetricCard
+                          label="Навыков в профиле"
+                          value={fmtInt(marketPosition.score.user_skills_count)}
+                          detail={`Средний спрос: ${fmtInt(marketPosition.score.user_avg_demand)}`}
+                          accent="rose"
+                        />
+                      </div>
+
                       <Panel
-                        eyebrow="Покрытие рынка"
-                        title={`${skillGapResult.match_pct}% вакансий доступно`}
-                        description={`${fmtInt(skillGapResult.matched_vacancies)} из ${fmtInt(skillGapResult.total_vacancies)} вакансий содержат хотя бы один твой навык`}
+                        eyebrow="Позиция на рынке"
+                        title={`${marketPosition.skill_gap?.match_pct ?? 0}% вакансий тебе доступны`}
+                        description={`${fmtInt(marketPosition.skill_gap?.matched_vacancies ?? 0)} из ${fmtInt(marketPosition.skill_gap?.total_vacancies ?? 0)} вакансий содержат хотя бы один твой навык`}
                       >
                         <div className="h-4 overflow-hidden rounded-full bg-[color:var(--border-strong)]">
                           <div
                             className="h-full rounded-full bg-[color:var(--green)] transition-all duration-700"
-                            style={{ width: `${Math.min(skillGapResult.match_pct, 100)}%` }}
+                            style={{ width: `${Math.min(marketPosition.skill_gap?.match_pct ?? 0, 100)}%` }}
                           />
                         </div>
-                        <p className="mt-2 text-right text-sm font-semibold text-[color:var(--green)]">{skillGapResult.match_pct}%</p>
+                        <p className="mt-2 text-right text-sm font-semibold text-[color:var(--green)]">{marketPosition.skill_gap?.match_pct ?? 0}%</p>
                       </Panel>
 
-                      {skillGapResult.missing_skills.length > 0 && (
+                      <div className="grid gap-6 xl:grid-cols-2">
+                        <Panel
+                          eyebrow="Зарплатная рамка"
+                          title="Твоя цена относительно рынка"
+                          description="Смотрим ожидание по зарплате против реальных рыночных диапазонов."
+                        >
+                          <SalaryPercentileCard
+                            salaryPercentile={marketPosition.salary_percentile}
+                            bestRegion={marketPosition.best_region}
+                          />
+                        </Panel>
+
+                        <Panel
+                          eyebrow="Скор профиля"
+                          title="Из чего складывается позиция"
+                          description="Спрос, зарплатный потенциал и покрытие вакансий считаются отдельно."
+                        >
+                          <ProfileScoreCard score={marketPosition.score} />
+                        </Panel>
+                      </div>
+
+                      {marketPosition.salary_estimates.length > 0 && (
+                        <Panel
+                          eyebrow="Зарплаты по твоим навыкам"
+                          title="Где у тебя сильнее денежный потенциал"
+                          description="Оценка берётся по первым навыкам из профиля с учётом выбранного уровня опыта."
+                        >
+                          <ProfileSalaryEstimates rows={marketPosition.salary_estimates} />
+                        </Panel>
+                      )}
+
+                      {(marketPosition.skill_gap?.missing_skills.length ?? 0) > 0 && (
                         <Panel
                           eyebrow="Приоритет обучения"
                           title="Что изучить дальше"
                           description="Отсортировано по ROI: количество новых вакансий × средняя зарплата"
                         >
                           <div className="space-y-2">
-                            {skillGapResult.missing_skills.map((item: MissingSkill, index: number) => (
-                              <div key={item.skill} className="flex items-center gap-3 bg-[color:var(--bg-2)] px-4 py-3">
+                            {marketPosition.skill_gap?.missing_skills.map((item: MissingSkill, index: number) => (
+                              <div key={item.skill} className="flex items-center gap-3 rounded-[20px] border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3">
                                 <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--surface-2)] text-xs font-bold text-[color:var(--text)]">
                                   {index + 1}
                                 </span>
@@ -1398,14 +1577,30 @@ export default function DashboardClient() {
                       )}
                     </>
                   )}
-                  {!skillGapResult && !skillGapLoading && !skillGapError && (
-                    <EmptyState
-                      title="Скилл-гэп ждёт навыки"
-                      description="Добавь свои навыки и нажми «Проанализировать», чтобы увидеть покрытие рынка."
-                      hint="Добавить навык"
-                    />
+                  {!marketPositionLoading && !marketPosition?.has_profile && (
+                    <Panel
+                      eyebrow="Пустое состояние"
+                      title="Пока это просто форма. Сделаем из неё твой market cockpit."
+                      description="После первого сохранения здесь появятся покрытие рынка, score, зарплатная позиция, лучший регион и пробелы по навыкам."
+                    >
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <div className="rounded-[22px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4">
+                          <div className="text-sm font-semibold text-[color:var(--text)]">1. Определи роль</div>
+                          <div className="mt-2 text-sm leading-6 text-[color:var(--text-dim)]">Например backend, data, frontend или DevOps.</div>
+                        </div>
+                        <div className="rounded-[22px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4">
+                          <div className="text-sm font-semibold text-[color:var(--text)]">2. Добавь свой стек</div>
+                          <div className="mt-2 text-sm leading-6 text-[color:var(--text-dim)]">Чем точнее навыки, тем честнее skill gap и зарплатная оценка.</div>
+                        </div>
+                        <div className="rounded-[22px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4">
+                          <div className="text-sm font-semibold text-[color:var(--text)]">3. Сохрани профиль</div>
+                          <div className="mt-2 text-sm leading-6 text-[color:var(--text-dim)]">Сразу появится персональный срез по рынку вместо общего обзора.</div>
+                        </div>
+                      </div>
+                    </Panel>
                   )}
                 </div>
+              </div>
               </div>
             )}
 
@@ -1426,7 +1621,7 @@ export default function DashboardClient() {
                     <button
                       type="submit"
                       disabled={chatLoading || !question.trim()}
-                      className="rounded-full bg-[color:var(--bg)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-full bg-[color:var(--bg)] px-5 py-3 text-sm font-semibold text-[color:var(--text)] transition hover:bg-[color:var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {chatLoading ? "AI анализирует..." : "Спросить AI"}
                     </button>
@@ -1464,21 +1659,12 @@ export default function DashboardClient() {
                   </Panel>
 
                   {chatChart && (
-                    <Panel
-                      eyebrow="Автографик"
-                      title={chartTitle(chatChart.type)}
-                      description="График строится на основе того же среза, что и ответ AI."
-                    >
-                      {chatChart.type === "skills" && <SkillsChart data={chatChart.data as Skill[]} />}
-                      {chatChart.type === "salaries" && <SalariesChart data={chatChart.data as Salary[]} />}
-                      {chatChart.type === "trends" && <TrendsChart data={chatChart.data as Trend[]} />}
-                      {chatChart.type === "regions" && <RegionsChart data={chatChart.data as RegionStat[]} />}
-                      {chatChart.type === "experience" && <MiniDistributionChart data={chatChart.data as LabeledCount[]} tone="#1d4ed8" />}
-                      {chatChart.type === "employment" && <MiniDistributionChart data={chatChart.data as LabeledCount[]} tone="#dc2626" />}
-                      {chatChart.type === "companies" && <CompaniesChart data={chatChart.data as CompanyStat[]} />}
-                      {chatChart.type === "salary_histogram" && <SalaryHistogramChart data={chatChart.data as SalaryBucket[]} />}
-                      {chatChart.type === "skill_compare" && <SkillCompareChart data={chatChart.data as SkillCompareItem[]} />}
-                      {chatChart.type === "generic_bar" && <GenericBarChart data={chatChart.data as { label: string; value: number }[]} />}
+                  <Panel
+                    eyebrow="Автографик"
+                    title={chartTitle(chatChart.type)}
+                    description="График строится на основе того же среза, что и ответ AI."
+                  >
+                      <AIChatChart chart={chatChart} />
                     </Panel>
                   )}
                 </div>
@@ -1488,19 +1674,6 @@ export default function DashboardClient() {
         )}
     </div>
   );
-}
-
-function chartTitle(type: ChartPayload["type"]) {
-  if (type === "salaries") return "Зарплатный график";
-  if (type === "salary_histogram") return "Распределение зарплат";
-  if (type === "skill_compare") return "Сравнение навыков";
-  if (type === "generic_bar") return "Сравнительный график";
-  if (type === "trends") return "Динамика по времени";
-  if (type === "regions") return "Региональный срез";
-  if (type === "experience") return "Распределение по опыту";
-  if (type === "employment") return "Распределение по занятости";
-  if (type === "companies") return "Срез по компаниям";
-  return "Навыки";
 }
 
 function SourceMixCard({
@@ -1529,7 +1702,7 @@ function SourceMixCard({
       <div className="space-y-3">
         <SourceSplitRow label="HH" value={hh} tone="teal" />
         <SourceSplitRow label="Telegram" value={telegram} tone="amber" />
-        <div className="rounded-[22px] bg-[color:var(--bg-2)] p-4 text-sm leading-6 text-[color:var(--text-dim)]">
+        <div className="rounded-[22px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4 text-sm leading-6 text-[color:var(--text-dim)]">
           Общий split помогает быстро понять, насколько продукт всё ещё HH-centric и какой вес уже набрал Telegram-слой.
         </div>
       </div>
@@ -1546,9 +1719,11 @@ function SourceSplitRow({
   value: number;
   tone: "teal" | "amber";
 }) {
-  const classes = tone === "teal" ? "bg-[color:var(--bg-2)] text-[color:var(--green)]" : "bg-[color:var(--bg-2)] text-[color:var(--accent)]";
+  const classes = tone === "teal"
+    ? "border-[rgba(46,139,98,0.16)] bg-[color:var(--surface)] text-[color:var(--green)]"
+    : "border-[rgba(124,108,255,0.16)] bg-[color:var(--surface)] text-[color:var(--accent)]";
   return (
-    <div className={`rounded-[22px] ${classes} px-4 py-4`}>
+    <div className={`rounded-[22px] border ${classes} px-4 py-4 shadow-[0_16px_32px_-28px_rgba(50,32,118,0.22)]`}>
       <div className="text-xs font-semibold uppercase tracking-[0.22em]">{label}</div>
       <div className="mt-2 text-2xl font-semibold">{fmtInt(value)}</div>
     </div>
@@ -1565,9 +1740,9 @@ function SourceNarrativeCard({
   accent: "teal" | "amber" | "navy";
 }) {
   const borderClass = {
-    teal: "border-[color:var(--green)] bg-[color:var(--bg-2)]",
-    amber: "border-[color:var(--accent-deep)] bg-[color:var(--bg-2)]",
-    navy: "border-blue-200 bg-[color:var(--bg-2)]",
+    teal: "border-[rgba(46,139,98,0.2)] bg-[color:var(--surface)]",
+    amber: "border-[rgba(124,108,255,0.2)] bg-[color:var(--surface)]",
+    navy: "border-[rgba(111,125,255,0.2)] bg-[color:var(--surface)]",
   }[accent];
 
   return (
@@ -1578,184 +1753,6 @@ function SourceNarrativeCard({
   );
 }
 
-function SkillsChart({ data }: { data: Skill[] }) {
-  if (!data.length) return <EmptyState title="Нет данных по навыкам" description="Запусти парсер или попробуй другой источник." />;
-  return (
-    <ResponsiveContainer width="100%" height={420}>
-      <BarChart data={data} layout="vertical" margin={{ left: 60, right: 10 }}>
-        <CartesianGrid stroke="#e7e5e4" horizontal={false} />
-        <XAxis type="number" tick={tickStyle} axisLine={false} tickLine={false} />
-        <YAxis dataKey="skill" type="category" width={100} tick={tickStyle} axisLine={false} tickLine={false} interval={0} />
-        <Tooltip formatter={(value) => [fmtInt(Number(value ?? 0)), "Вакансий"]} />
-        <Bar dataKey="count" radius={[0, 10, 10, 0]} fill="#0f766e" />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-function SalariesChart({ data }: { data: Salary[] }) {
-  if (!data.length) return <EmptyState title="Нет данных по зарплатам" description="Telegram редко даёт зарплатные вилки — попробуй HH-режим." />;
-  return (
-    <ResponsiveContainer width="100%" height={Math.max(360, data.length * 52)}>
-      <BarChart data={data} layout="vertical" margin={{ left: 80, right: 16 }}>
-        <CartesianGrid stroke="#e7e5e4" horizontal={false} />
-        <XAxis
-          type="number"
-          tick={tickStyle}
-          axisLine={false}
-          tickLine={false}
-          tickFormatter={(v) => `${Math.round(v / 1000)}k`}
-        />
-        <YAxis
-          dataKey="skill"
-          type="category"
-          width={110}
-          tick={tickStyle}
-          axisLine={false}
-          tickLine={false}
-          interval={0}
-        />
-        <Tooltip
-          formatter={(value, name) => [
-            fmtSalary(Number(value ?? 0)),
-            name === "avg_salary_kzt" ? "Средняя" : "Медиана",
-          ]}
-          content={({ active, payload }) => {
-            if (!active || !payload?.length) return null;
-            const d = payload[0]?.payload as Salary;
-            return (
-              <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-xs shadow-lg">
-                <p className="mb-2 font-semibold text-[color:var(--text)]">{d.skill}</p>
-                <p className="text-[color:var(--accent)]">Средняя: {fmtSalary(d.avg_salary_kzt)}</p>
-                <p className="text-[color:var(--green)]">Медиана: {fmtSalary(d.median_salary_kzt)}</p>
-                <p className="mt-1 text-[color:var(--muted)]">Мин: {fmtSalary(d.min_salary_kzt)} · Макс: {fmtSalary(d.max_salary_kzt)}</p>
-                <p className="text-[color:var(--muted)]">Вакансий с зарплатой: {d.vacancy_count}</p>
-              </div>
-            );
-          }}
-        />
-        <Legend
-          formatter={(value) => (value === "avg_salary_kzt" ? "Средняя" : "Медиана")}
-          wrapperStyle={{ fontSize: 12, color: "#78716c" }}
-        />
-        <Bar dataKey="avg_salary_kzt" name="avg_salary_kzt" radius={[0, 6, 6, 0]} fill="#b45309" barSize={10} />
-        <Bar dataKey="median_salary_kzt" name="median_salary_kzt" radius={[0, 6, 6, 0]} fill="#0f766e" barSize={10} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-function SalaryHistogramChart({ data }: { data: SalaryBucket[] }) {
-  if (!data.length) return <EmptyState title="Нет данных для гистограммы" description="Попробуй сменить источник или запустить парсер." />;
-  return (
-    <ResponsiveContainer width="100%" height={360}>
-      <BarChart data={data}>
-        <CartesianGrid stroke="#e7e5e4" strokeDasharray="3 3" />
-        <XAxis dataKey="bucket" tick={tickStyle} axisLine={false} tickLine={false} interval={0} angle={-12} textAnchor="end" height={64} />
-        <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
-        <Tooltip formatter={(value) => [fmtInt(Number(value ?? 0)), "Вакансий"]} />
-        <Bar dataKey="count" fill="#0f766e" radius={[8, 8, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-function SkillCompareChart({ data }: { data: SkillCompareItem[] }) {
-  if (!data.length) return <EmptyState title="Нечего сравнивать" description="AI пока не предложил навыки для compare." />;
-  const trendRows = buildSkillCompareTrendRows(data);
-
-  return (
-    <div className="space-y-6">
-      <ResponsiveContainer width="100%" height={320}>
-        <BarChart data={data}>
-          <CartesianGrid stroke="#e7e5e4" strokeDasharray="3 3" />
-          <XAxis dataKey="skill" tick={tickStyle} axisLine={false} tickLine={false} />
-          <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
-          <Tooltip formatter={(value) => [fmtInt(Number(value ?? 0)), "Вакансий"]} />
-          <Bar dataKey="vacancy_count" fill="#0f766e" radius={[8, 8, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-
-      <div className="grid gap-3 md:grid-cols-3">
-        {data.map((item) => (
-          <div key={item.skill} className="rounded-[22px] bg-[color:var(--bg-2)] p-4">
-            <div className="text-sm font-semibold text-[color:var(--text)]">{item.skill}</div>
-            <div className="mt-2 space-y-1 text-xs text-[color:var(--text-dim)]">
-              <div>Спрос: {fmtInt(item.vacancy_count)}</div>
-              <div>Средняя: {item.avg_salary_kzt ? fmtSalary(item.avg_salary_kzt) : "нет данных"}</div>
-              <div>Медиана: {item.median_salary_kzt ? fmtSalary(item.median_salary_kzt) : "нет данных"}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {trendRows.length > 0 && (
-        <ResponsiveContainer width="100%" height={280}>
-          <LineChart data={trendRows}>
-            <CartesianGrid stroke="#e7e5e4" strokeDasharray="3 3" />
-            <XAxis dataKey="month" tick={tickStyle} axisLine={false} tickLine={false} />
-            <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
-            <Tooltip formatter={(value) => [fmtInt(Number(value ?? 0)), "Вакансий"]} />
-            <Legend />
-            {data.map((item, index) => (
-              <Line
-                key={item.skill}
-                type="monotone"
-                dataKey={item.skill}
-                stroke={chartColors[index % chartColors.length] ?? "#0f766e"}
-                strokeWidth={3}
-                dot={{ r: 3 }}
-              />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
-      )}
-    </div>
-  );
-}
-
-function GenericBarChart({ data }: { data: { label: string; value: number }[] }) {
-  return (
-    <ResponsiveContainer width="100%" height={Math.max(280, data.length * 44)}>
-      <BarChart data={data} layout="vertical" margin={{ left: 80, right: 16 }}>
-        <CartesianGrid stroke="#e7e5e4" horizontal={false} />
-        <XAxis type="number" tick={tickStyle} axisLine={false} tickLine={false} />
-        <YAxis dataKey="label" type="category" width={120} tick={tickStyle} axisLine={false} tickLine={false} interval={0} />
-        <Tooltip formatter={(value) => [fmtInt(Number(value ?? 0)), "Значение"]} />
-        <Bar dataKey="value" fill="#0f766e" radius={[0, 8, 8, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-function buildSkillCompareTrendRows(data: SkillCompareItem[]) {
-  const byMonth = new Map<string, Record<string, string | number>>();
-
-  for (const item of data) {
-    for (const point of item.monthly_trend) {
-      const row = byMonth.get(point.month) ?? { month: point.month };
-      row[item.skill] = point.count;
-      byMonth.set(point.month, row);
-    }
-  }
-
-  return [...byMonth.values()].sort((a, b) => String(a.month).localeCompare(String(b.month)));
-}
-
-function TrendsChart({ data }: { data: Trend[] }) {
-  if (!data.length) return <EmptyState title="Нет данных по трендам" description="Накопится после первых запусков парсера." />;
-  return (
-    <ResponsiveContainer width="100%" height={360}>
-      <LineChart data={data} margin={{ left: 8, right: 16 }}>
-        <CartesianGrid stroke="#e7e5e4" strokeDasharray="3 3" />
-        <XAxis dataKey="month" tick={tickStyle} axisLine={false} tickLine={false} />
-        <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
-        <Tooltip formatter={(value) => [fmtInt(Number(value ?? 0)), "Вакансий"]} />
-        <Line type="monotone" dataKey="count" stroke="#1d4ed8" strokeWidth={3} dot={{ r: 4, fill: "#1d4ed8" }} />
-      </LineChart>
-    </ResponsiveContainer>
-  );
-}
 
 function TrendingSkillsList({
   data,
@@ -1775,7 +1772,7 @@ function TrendingSkillsList({
           onClick={() => onSelect(item.skill)}
           className={`flex w-full items-center justify-between gap-4 border px-4 py-3 text-left transition ${
             selectedSkill === item.skill
-              ? "border-[color:var(--border-strong)] bg-[color:var(--bg)] text-white"
+              ? "border-[color:var(--border-strong)] bg-[color:var(--surface)] text-[color:var(--accent)] shadow-[0_12px_28px_-20px_rgba(124,108,255,0.55)]"
               : "border-[color:var(--border)] bg-[color:var(--bg-2)] hover:border-[color:var(--border-strong)]"
           }`}
         >
@@ -1858,11 +1855,11 @@ function SkillCardPanel({ card }: { card: ApiSkillCard }) {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <div className="rounded-[24px] bg-[color:var(--bg-2)] p-4">
+        <div className="rounded-[24px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4">
           <div className="mb-3 text-sm font-semibold text-[color:var(--text)]">Динамика по месяцам</div>
           <TrendsChart data={card.monthly_trend} />
         </div>
-        <div className="rounded-[24px] bg-[color:var(--bg-2)] p-4">
+        <div className="rounded-[24px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4">
           <div className="mb-3 text-sm font-semibold text-[color:var(--text)]">Связанные навыки</div>
           <div className="flex flex-wrap gap-2">
             {card.related_skills.map((item) => (
@@ -1907,7 +1904,7 @@ function SimpleStatList({
   rows: { label: string; value: string }[];
 }) {
   return (
-    <div className="rounded-[24px] bg-[color:var(--bg-2)] p-4">
+    <div className="rounded-[24px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4">
       <div className="mb-3 text-sm font-semibold text-[color:var(--text)]">{title}</div>
       <div className="space-y-3">
         {rows.map((row) => (
@@ -1921,22 +1918,116 @@ function SimpleStatList({
   );
 }
 
+function ProfileScoreCard({ score }: { score: ProfileScoreBreakdown | null }) {
+  if (!score) {
+    return <div className="text-sm text-[color:var(--text-dim)]">Недостаточно данных для score.</div>;
+  }
+
+  const rows = [
+    { label: "Спрос", value: score.demand },
+    { label: "Зарплата", value: score.salary },
+    { label: "Покрытие", value: score.coverage },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {rows.map((row) => (
+        <div key={row.label}>
+          <div className="mb-1.5 flex items-center justify-between text-sm">
+            <span className="text-[color:var(--text)]">{row.label}</span>
+            <span className="font-semibold text-[color:var(--accent)]">{row.value}/100</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-[color:var(--bg-2)]">
+            <div className="h-full rounded-full bg-[color:var(--accent)]" style={{ width: `${row.value}%` }} />
+          </div>
+        </div>
+      ))}
+      <div className="grid gap-3 md:grid-cols-2">
+        <DetailBox label="Спрос твоих навыков" value={fmtInt(score.user_avg_demand)} />
+        <DetailBox label="Средний спрос по рынку" value={fmtInt(score.market_avg_demand)} />
+      </div>
+    </div>
+  );
+}
+
+function SalaryPercentileCard({
+  salaryPercentile,
+  bestRegion,
+}: {
+  salaryPercentile: SalaryPercentile | null;
+  bestRegion: BestRegion | null;
+}) {
+  return (
+    <div className="space-y-4">
+      {salaryPercentile ? (
+        <div className="rounded-[22px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4">
+          <div className="text-sm font-semibold text-[color:var(--text)]">
+            {salaryPercentile.assessment === "below"
+              ? "Ожидание ниже рынка"
+              : salaryPercentile.assessment === "above"
+                ? "Ожидание выше рынка"
+                : "Ожидание в рынке"}
+          </div>
+          <div className="mt-2 space-y-1 text-sm text-[color:var(--text-dim)]">
+            <div>Твоя цель: {fmtSalary(salaryPercentile.expectation)}</div>
+            <div>P25: {fmtSalary(salaryPercentile.market_p25)}</div>
+            <div>Медиана: {fmtSalary(salaryPercentile.market_median)}</div>
+            <div>P75: {fmtSalary(salaryPercentile.market_p75)}</div>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-[22px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4 text-sm text-[color:var(--text-dim)]">
+          Добавь зарплатное ожидание в профиль, чтобы увидеть своё место в рыночной вилке.
+        </div>
+      )}
+
+      {bestRegion && (
+        <div className="rounded-[22px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--muted)]">Лучший регион</div>
+          <div className="mt-2 text-lg font-semibold text-[color:var(--text)]">{bestRegion.region}</div>
+          <div className="mt-2 text-sm text-[color:var(--text-dim)]">
+            По навыку {bestRegion.skill}: {fmtInt(bestRegion.vacancy_count)} вакансий, средняя {fmtSalary(bestRegion.avg_salary_kzt)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProfileSalaryEstimates({ rows }: { rows: SalaryCalcResult[] }) {
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      {rows.map((row) => (
+        <div key={`${row.skill}-${row.experience ?? "any"}`} className="rounded-[22px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4">
+          <div className="text-lg font-semibold text-[color:var(--text)]">{row.skill}</div>
+          <div className="mt-2 space-y-1 text-sm text-[color:var(--text-dim)]">
+            <div>Медиана: {fmtSalary(row.median_salary_kzt)}</div>
+            <div>Средняя: {fmtSalary(row.avg_salary_kzt)}</div>
+            <div>Диапазон: {fmtSalary(row.p25_salary_kzt)} — {fmtSalary(row.p75_salary_kzt)}</div>
+            <div>Выборка: {fmtInt(row.sample_count)} вакансий</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function VacancyDetailPanel({ vacancy }: { vacancy: ApiVacancy | null }) {
   if (!vacancy) {
-    return <div className="rounded-[24px] bg-[color:var(--bg-2)] p-6 text-sm text-[color:var(--text-dim)]">Выбери вакансию слева, чтобы увидеть детали.</div>;
+    return <div className="rounded-[24px] border border-[color:var(--border)] bg-[color:var(--surface)] p-6 text-sm text-[color:var(--text-dim)]">Выбери вакансию слева, чтобы увидеть детали.</div>;
   }
 
   return (
     <div className="rounded-[28px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--muted)]">{vacancy.source}</div>
+          <div className="inline-flex rounded-full bg-[color:var(--surface-2)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-deep)]">{vacancy.source}</div>
           <h3 className="mt-2 text-2xl font-semibold text-[color:var(--text)]">{vacancy.title}</h3>
           <p className="mt-2 text-sm text-[color:var(--text-dim)]">
             {vacancy.company ?? "Компания не указана"} · {vacancy.area_name ?? "Регион не указан"}
           </p>
         </div>
-        <div className="rounded-full bg-[color:var(--bg-2)] px-3 py-1 text-xs font-semibold text-[color:var(--text-dim)]">
+        <div className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-1 text-xs font-semibold text-[color:var(--text-dim)]">
           {vacancy.published_at ? new Date(vacancy.published_at).toLocaleDateString("ru-RU") : "Дата не указана"}
         </div>
       </div>
@@ -1953,7 +2044,7 @@ function VacancyDetailPanel({ vacancy }: { vacancy: ApiVacancy | null }) {
         <div className="mt-3 flex flex-wrap gap-2">
           {(vacancy.skills ?? []).length ? (
             vacancy.skills?.map((skill) => (
-              <span key={`${vacancy.id}-${skill}`} className="rounded-full bg-[color:var(--bg-2)] px-3 py-2 text-sm text-[color:var(--text)]">
+              <span key={`${vacancy.id}-${skill}`} className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]">
                 {skill}
               </span>
             ))
@@ -1968,7 +2059,7 @@ function VacancyDetailPanel({ vacancy }: { vacancy: ApiVacancy | null }) {
 
 function DetailBox({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[22px] bg-[color:var(--bg-2)] px-4 py-4">
+    <div className="rounded-[22px] border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-4">
       <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--muted)]">{label}</div>
       <div className="mt-2 text-sm text-[color:var(--text)]">{value}</div>
     </div>
@@ -2013,40 +2104,6 @@ function formatVacancySalary(vacancy: ApiVacancy) {
   return "Зарплата не указана";
 }
 
-function RegionsChart({ data }: { data: RegionStat[] }) {
-  if (!data.length) return <EmptyState title="Нет данных по регионам" description="После загрузки вакансий тут появится география." />;
-  return (
-    <ResponsiveContainer width="100%" height={420}>
-      <BarChart data={data.slice(0, 10)} layout="vertical" margin={{ left: 95, right: 10 }}>
-        <CartesianGrid stroke="#e7e5e4" horizontal={false} />
-        <XAxis type="number" tick={tickStyle} axisLine={false} tickLine={false} />
-        <YAxis dataKey="region" type="category" width={120} tick={tickStyle} axisLine={false} tickLine={false} interval={0} />
-        <Tooltip formatter={(value, name) => [fmtInt(Number(value ?? 0)), name as string]} />
-        <Legend />
-        <Bar dataKey="with_salary" stackId="regions" fill="#0f766e" radius={[0, 8, 8, 0]} name="С зарплатой" />
-        <Bar dataKey="without_salary" stackId="regions" fill="#7dd3c7" radius={[0, 8, 8, 0]} name="Без зарплаты" />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-function CompaniesChart({ data }: { data: CompanyStat[] }) {
-  if (!data.length) return <EmptyState title="Нет данных по компаниям" description="Появится после первого парсинга." />;
-  return (
-    <ResponsiveContainer width="100%" height={420}>
-      <BarChart data={data.slice(0, 10)} layout="vertical" margin={{ left: 100, right: 10 }}>
-        <CartesianGrid stroke="#e7e5e4" horizontal={false} />
-        <XAxis type="number" tick={tickStyle} axisLine={false} tickLine={false} />
-        <YAxis dataKey="company" type="category" width={135} tick={tickStyle} axisLine={false} tickLine={false} interval={0} />
-        <Tooltip formatter={(value, name) => [fmtInt(Number(value ?? 0)), name as string]} />
-        <Legend />
-        <Bar dataKey="with_salary" stackId="companies" fill="#7c3aed" radius={[0, 8, 8, 0]} name="С зарплатой" />
-        <Bar dataKey="without_salary" stackId="companies" fill="#d8b4fe" radius={[0, 8, 8, 0]} name="Без зарплаты" />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
 function DistributionChart({
   title,
   data,
@@ -2063,24 +2120,3 @@ function DistributionChart({
     </div>
   );
 }
-
-function MiniDistributionChart({ data, tone }: { data: LabeledCount[]; tone: string }) {
-  if (!data.length) return <EmptyState title="Нет данных" />;
-  return (
-    <ResponsiveContainer width="100%" height={240}>
-      <BarChart data={data}>
-        <CartesianGrid stroke="#e7e5e4" strokeDasharray="3 3" />
-        <XAxis dataKey="label" tick={tickStyle} axisLine={false} tickLine={false} interval={0} angle={-15} textAnchor="end" height={62} />
-        <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
-        <Tooltip formatter={(value) => [fmtInt(Number(value ?? 0)), "Вакансий"]} />
-        <Bar dataKey="count" fill={tone} radius={[8, 8, 0, 0]}>
-          {data.map((_, index) => (
-            <Cell key={index} fill={chartColors[index % chartColors.length] ?? tone} />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-const tickStyle = { fill: "#57534e", fontSize: 12 };

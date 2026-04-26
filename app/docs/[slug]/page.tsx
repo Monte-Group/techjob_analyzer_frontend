@@ -88,7 +88,7 @@ export default async function DocPage({
         </header>
 
         <nav
-          className="mt-10 panel hairline px-6 py-5"
+          className="mt-10 panel hairline px-6 py-5 bg-[linear-gradient(135deg,rgba(124,108,255,0.08),transparent_42%)]"
           aria-label="Содержание документа"
         >
           <div className="eyebrow mb-3">Содержание</div>
@@ -135,7 +135,7 @@ export default async function DocPage({
           ))}
         </div>
 
-        <aside className="mt-16 panel hairline px-6 md:px-8 py-6 flex flex-wrap items-center justify-between gap-4">
+        <aside className="mt-16 panel hairline px-6 md:px-8 py-6 flex flex-wrap items-center justify-between gap-4 bg-[linear-gradient(135deg,rgba(124,108,255,0.10),transparent_46%)]">
           <div>
             <div className="eyebrow mb-1">Вопросы по документу</div>
             <p className="text-[14px] text-[color:var(--text-dim)]">
@@ -164,7 +164,8 @@ export default async function DocPage({
               <Link
                 key={d.slug}
                 href={`/docs/${d.slug}`}
-                className="bg-[color:var(--bg)] p-6 group hover:bg-[color:var(--bg-2)] transition-colors"
+                className="bg-[color:var(--surface)] p-6 group hover:bg-[color:var(--bg-2)] transition-colors"
+                style={{ boxShadow: "inset 0 1px 0 rgba(124,108,255,0.08)" }}
               >
                 <span className="eyebrow">{d.eyebrow}</span>
                 <h3 className="mt-3 medium text-[1.25rem] leading-tight">

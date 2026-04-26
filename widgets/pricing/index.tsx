@@ -28,7 +28,7 @@ export default function Pricing() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-[color:var(--border)]">
           {/* FREE */}
-          <div className="bg-[color:var(--bg)] p-8 md:p-10 flex flex-col">
+          <div className="bg-[color:var(--surface)] p-8 md:p-10 flex flex-col">
             <div className="flex items-baseline justify-between">
               <span className="eyebrow">Free</span>
               <span className="font-mono text-[10px] text-[color:var(--muted)]">
@@ -69,6 +69,7 @@ export default function Pricing() {
                   "radial-gradient(circle at center, rgba(124,108,255,0.22), transparent 60%)",
               }}
             />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(124,108,255,0.14),rgba(124,108,255,0))]" />
             <div className="relative flex items-baseline justify-between">
               <span className="eyebrow text-[color:var(--accent)]">⚡ Pro · популярное</span>
               <span className="font-mono text-[10px] text-[color:var(--accent)]">
@@ -107,7 +108,7 @@ export default function Pricing() {
           </div>
 
           {/* TEAM */}
-          <div className="bg-[color:var(--bg)] p-8 md:p-10 flex flex-col">
+          <div className="bg-[color:var(--surface)] p-8 md:p-10 flex flex-col">
             <div className="flex items-baseline justify-between">
               <span className="eyebrow">Team</span>
               <span className="font-mono text-[10px] text-[color:var(--muted)]">
@@ -146,7 +147,7 @@ export default function Pricing() {
           </div>
         </div>
 
-        <div className="mt-6 panel hairline px-6 md:px-8 py-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="mt-6 panel hairline px-6 md:px-8 py-6 flex flex-wrap items-center justify-between gap-4 bg-[linear-gradient(135deg,rgba(124,108,255,0.10),transparent_48%)]">
           <div className="flex items-baseline gap-6 flex-wrap">
             <span className="eyebrow text-[color:var(--accent)]">Enterprise</span>
             <p className="text-[14px] text-[color:var(--text-dim)] max-w-[600px]">

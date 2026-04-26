@@ -1,5 +1,5 @@
-import DashboardClient from "@/widgets/dashboard/dashboard-client";
+import { redirect } from "next/navigation";
 
 export default function SkillGapPage() {
-  return <DashboardClient />;
+  redirect("/dashboard/profile");
 }

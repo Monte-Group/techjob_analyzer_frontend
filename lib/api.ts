@@ -401,3 +401,71 @@ export async function getSkillGap(skills: string[], source?: string): Promise<Sk
   const { data } = await api.post(`/analytics/skill-gap${query}`, skills);
   return data as SkillGapResult;
 }
+
+export interface UserProfile {
+  skills: string[];
+  experience_level: string | null;
+  salary_expectation: number | null;
+  target_role: string | null;
+}
+
+export interface ProfileScoreBreakdown {
+  total: number;
+  demand: number;
+  salary: number;
+  coverage: number;
+  market_avg_demand: number;
+  user_avg_demand: number;
+  market_median_salary: number;
+  user_median_salary: number;
+  user_skills_count: number;
+}
+
+export interface TrendingMissingSkill {
+  skill: string;
+  delta: number;
+  delta_pct: number;
+  extra_vacancies: number;
+  avg_salary_kzt: number | null;
+}
+
+export interface SalaryPercentile {
+  expectation: number;
+  market_p25: number;
+  market_median: number;
+  market_p75: number;
+  assessment: "below" | "market" | "above";
+}
+
+export interface BestRegion {
+  region: string;
+  vacancy_count: number;
+  avg_salary_kzt: number;
+  skill: string;
+}
+
+export interface MarketPosition {
+  profile: UserProfile;
+  has_profile: boolean;
+  score: ProfileScoreBreakdown | null;
+  skill_gap: SkillGapResult | null;
+  salary_estimates: SalaryCalcResult[];
+  trending_missing_skills: TrendingMissingSkill[];
+  salary_percentile: SalaryPercentile | null;
+  best_region: BestRegion | null;
+}
+
+export async function getProfile(): Promise<UserProfile> {
+  const { data } = await api.get("/me/profile");
+  return data as UserProfile;
+}
+
+export async function upsertProfile(profile: UserProfile): Promise<UserProfile> {
+  const { data } = await api.post("/me/profile", profile);
+  return data as UserProfile;
+}
+
+export async function getMarketPosition(): Promise<MarketPosition> {
+  const { data } = await api.get("/me/market-position");
+  return data as MarketPosition;
+}

@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-:root {
+html[data-theme="dark"] {
   --bg: #18181b;
   --bg-2: #1f1f24;
   --surface: #232329;
@@ -21,6 +21,49 @@
 
   --grid: rgba(251, 244, 223, 0.055);
   --noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.92 0 0 0 0 0.85 0 0 0 0.35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --nav-overlay: rgba(24, 24, 27, 0.82);
+  --body-glow: radial-gradient(
+    circle at 50% 50%,
+    rgba(147, 51, 234, 0.20) 0%,
+    rgba(147, 51, 234, 0.12) 25%,
+    rgba(147, 51, 234, 0.05) 35%,
+    transparent 50%
+  );
+}
+
+html[data-theme="light"] {
+  --bg: #f6f3fb;
+  --bg-2: #f1ebff;
+  --surface: #ffffff;
+  --surface-2: #ece5ff;
+  --border: #ddd4f8;
+  --border-strong: #b3a6ef;
+  --text: #201938;
+  --text-dim: #5b537d;
+  --muted: #7d74a8;
+  --faint: #cbc2ea;
+
+  --accent: #7c6cff;
+  --accent-bright: #a59dff;
+  --accent-deep: #5b4fd6;
+  --green: #2e8b62;
+  --red: #cd5b50;
+  --blue: #6f7dff;
+
+  --grid: rgba(64, 48, 112, 0.09);
+  --noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.36 0 0 0 0 0.30 0 0 0 0 0.55 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --nav-overlay: rgba(250, 247, 255, 0.92);
+  --body-glow: radial-gradient(
+    circle at 50% 50%,
+    rgba(124, 108, 255, 0.18) 0%,
+    rgba(124, 108, 255, 0.08) 22%,
+    rgba(124, 108, 255, 0.025) 38%,
+    transparent 54%
+  );
+}
+
+:root {
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -47,7 +90,6 @@
 
 html {
   background: var(--bg);
-  color-scheme: dark;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -62,13 +104,7 @@ section[id] { scroll-margin-top: 5rem; }
 
 body {
   background-color: var(--bg);
-  background-image: radial-gradient(
-    circle at 50% 50%,
-    rgba(147, 51, 234, 0.20) 0%,
-    rgba(147, 51, 234, 0.12) 25%,
-    rgba(147, 51, 234, 0.05) 35%,
-    transparent 50%
-  );
+  background-image: var(--body-glow);
   background-attachment: fixed;
   background-repeat: no-repeat;
   background-size: 100% 100%;

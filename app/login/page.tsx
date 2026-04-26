@@ -134,6 +134,7 @@ export default function LoginPage() {
                   <div
                     key={f.title}
                     className="bg-[color:var(--bg)] px-5 py-5"
+                    style={{ boxShadow: "inset 0 1px 0 rgba(124,108,255,0.08)" }}
                   >
                     <div className="font-display text-[20px] leading-tight text-[color:var(--text)]">
                       {f.title}
@@ -170,7 +171,8 @@ export default function LoginPage() {
               className="col-span-12 lg:col-span-5 relative reveal"
               style={{ animationDelay: "400ms" }}
             >
-              <div className="panel-lift relative">
+              <div className="panel-lift relative overflow-hidden">
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[linear-gradient(180deg,rgba(124,108,255,0.14),rgba(124,108,255,0))]" />
                 <div className="flex items-center justify-between px-4 py-2.5 hairline-b bg-[color:var(--bg)]">
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[color:var(--red)]" />
@@ -197,7 +199,7 @@ export default function LoginPage() {
                           className={`flex-1 px-4 py-2.5 font-mono text-[11px] tracking-[0.14em] uppercase transition-colors ${
                             active
                               ? "bg-[color:var(--accent)] text-[#fbf4df]"
-                              : "bg-transparent text-[color:var(--text-dim)] hover:text-[color:var(--text)]"
+                              : "bg-transparent text-[color:var(--text-dim)] hover:text-[color:var(--accent)]"
                           }`}
                         >
                           {currentMode === "login" ? "Вход" : "Регистрация"}

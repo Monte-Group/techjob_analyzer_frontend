@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Playfair_Display, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
-import { Toaster } from "sonner";
+import Script from "next/script";
+import { ThemeToaster } from "@/shared/ui/theme-toaster";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -99,9 +100,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: dark)", color: "#18181b" },
-    { media: "(prefers-color-scheme: light)", color: "#18181b" },
+    { media: "(prefers-color-scheme: light)", color: "#f3f0ff" },
   ],
-  colorScheme: "dark",
+  colorScheme: "dark light",
   width: "device-width",
   initialScale: 1,
 };
@@ -140,9 +141,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="ru"
       className={`${playfair.variable} ${plexSans.variable} ${plexMono.variable}`}
+      data-theme="dark"
       suppressHydrationWarning
     >
       <head>
+        <Script id="theme-init" strategy="beforeInteractive">{`
+          (function () {
+            try {
+              var saved = localStorage.getItem("theme");
+              var system = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+              var theme = saved === "light" || saved === "dark" ? saved : system;
+              document.documentElement.dataset.theme = theme;
+              document.documentElement.style.colorScheme = theme;
+            } catch (e) {
+              document.documentElement.dataset.theme = "dark";
+              document.documentElement.style.colorScheme = "dark";
+            }
+          })();
+        `}</Script>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
@@ -158,7 +174,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="antialiased">
         {children}
-        <Toaster theme="dark" position="bottom-right" richColors />
+        <ThemeToaster />
       </body>
     </html>
   );

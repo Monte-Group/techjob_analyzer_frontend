@@ -68,6 +68,14 @@ export default function Hero() {
             </p>
 
             <div
+              className="mt-8 inline-flex items-center gap-2 rounded-full border border-[color:var(--border-strong)] bg-[color:var(--surface)] px-4 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-[color:var(--accent)] reveal"
+              style={{ animationDelay: "200ms" }}
+            >
+              <span className="inline-block h-2 w-2 rounded-full bg-[color:var(--accent)]" />
+              Purple signal across real market data
+            </div>
+
+            <div
               className="mt-10 flex flex-wrap items-center gap-3 reveal"
               style={{ animationDelay: "240ms" }}
             >
@@ -118,7 +126,8 @@ export default function Hero() {
                 </div>
               </div>
 
-              <div className="panel-lift mt-14 md:mt-24 relative">
+              <div className="panel-lift mt-14 md:mt-24 relative overflow-hidden">
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(124,108,255,0.12),rgba(124,108,255,0))]" />
                 <div className="flex items-center justify-between px-4 py-2.5 hairline-b bg-[color:var(--bg)]">
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[color:var(--red)]" />
