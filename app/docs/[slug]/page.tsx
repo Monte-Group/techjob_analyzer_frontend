@@ -49,16 +49,31 @@ export default async function DocPage({
       <Nav />
 
       <article className="mx-auto max-w-[920px] px-6 md:px-10 pt-16 md:pt-24 pb-16 md:pb-24 relative">
-        <div className="mb-10 flex items-center gap-3">
-          <Link
-            href="/"
-            className="font-mono text-[11px] tracking-[0.12em] uppercase text-[color:var(--text-dim)] hover:text-[color:var(--text)] transition-colors"
-          >
-            ← На главную
-          </Link>
-          <span className="h-[10px] w-px bg-[color:var(--border-strong)]" />
-          <span className="eyebrow">Docs · {doc.eyebrow}</span>
-        </div>
+        <nav aria-label="Хлебные крошки" className="mb-10">
+          <ol className="flex flex-wrap items-center gap-2 font-mono text-[11px] tracking-[0.12em] uppercase">
+            <li>
+              <Link
+                href="/"
+                className="text-[color:var(--text-dim)] hover:text-[color:var(--text)] transition-colors"
+              >
+                Главная
+              </Link>
+            </li>
+            <li className="text-[color:var(--muted)]">/</li>
+            <li>
+              <Link
+                href="/#docs"
+                className="text-[color:var(--text-dim)] hover:text-[color:var(--text)] transition-colors"
+              >
+                Docs
+              </Link>
+            </li>
+            <li className="text-[color:var(--muted)]">/</li>
+            <li className="text-[color:var(--text)]" aria-current="page">
+              {doc.eyebrow}
+            </li>
+          </ol>
+        </nav>
 
         <header className="hairline-b pb-10">
           <h1 className="large mt-2">{doc.title}</h1>

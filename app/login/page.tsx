@@ -1,8 +1,10 @@
+/* eslint-disable @next/next/no-html-link-for-pages */
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { toast } from "sonner";
 
 import { login, register } from "@/lib/api";
 import Nav from "@/widgets/nav";
@@ -40,26 +42,31 @@ export default function LoginPage() {
 
     try {
       if (mode === "login") {
-        await login(email, password);
-        localStorage.removeItem("token");
+        const token = await login(email, password);
+        localStorage.setItem("token", token);
+        toast.success("Вход выполнен");
         router.push("/dashboard");
       } else {
         await register(email, password);
-        await login(email, password);
-        localStorage.removeItem("token");
+        const token = await login(email, password);
+        localStorage.setItem("token", token);
+        toast.success("Аккаунт создан");
         router.push("/dashboard");
       }
     } catch (requestError) {
+      let message: string;
       if (axios.isAxiosError(requestError)) {
         const status = requestError.response?.status;
         if (mode === "login") {
-          setError(status === 401 ? "Неверный email или пароль" : "Ошибка входа");
+          message = status === 401 ? "Неверный email или пароль" : "Ошибка входа";
         } else {
-          setError(status === 409 ? "Email уже зарегистрирован" : "Ошибка регистрации");
+          message = status === 409 ? "Email уже зарегистрирован" : "Ошибка регистрации";
         }
       } else {
-        setError(mode === "login" ? "Неверный email или пароль" : "Ошибка регистрации");
+        message = mode === "login" ? "Неверный email или пароль" : "Ошибка регистрации";
       }
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,5 @@
 import DashboardClient from "@/widgets/dashboard/dashboard-client";
 
-export default function DashboardPage() {
+export default function TrendsPage() {
   return <DashboardClient />;
 }

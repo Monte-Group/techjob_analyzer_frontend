@@ -1,40 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 
-const items: { id: string; label: string }[] = [
-  { id: "overview", label: "Обзор" },
-  { id: "skills", label: "Навыки" },
-  { id: "salaries", label: "Зарплаты" },
-  { id: "trends", label: "Тренды" },
-  { id: "market", label: "Срез рынка" },
-  { id: "salary-calc", label: "Калькулятор" },
-  { id: "skill-gap", label: "Скилл-гэп" },
+const items: { href: string; label: string }[] = [
+  { href: "/dashboard", label: "Обзор" },
+  { href: "/dashboard/skills", label: "Навыки" },
+  { href: "/dashboard/salaries", label: "Зарплаты" },
+  { href: "/dashboard/trends", label: "Тренды" },
+  { href: "/dashboard/market", label: "Срез рынка" },
+  { href: "/dashboard/calculator", label: "Калькулятор" },
+  { href: "/dashboard/skill-gap", label: "Скилл-гэп" },
 ];
 
 export function DashboardSidebar() {
-  const searchParams = useSearchParams();
-  const active = searchParams.get("tab") ?? "overview";
+  const pathname = usePathname();
 
   return (
     <aside className="fixed left-0 top-0 z-30 hidden h-screen w-64 flex-col border-r border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-6 lg:flex">
-      <div className="mb-8 px-3">
+      <Link href="/dashboard" className="mb-8 px-3 block">
         <div className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--text-dim)]">
           Tech Job
         </div>
         <div className="mt-1 font-display text-lg text-[color:var(--text)]">
           Market Intelligence
         </div>
-      </div>
+      </Link>
 
       <nav className="flex flex-1 flex-col gap-1">
         {items.map((item) => {
-          const isActive = active === item.id;
+          const isActive = pathname === item.href;
           return (
             <Link
-              key={item.id}
-              href={`/dashboard?tab=${item.id}`}
+              key={item.href}
+              href={item.href}
               className={`rounded-2xl px-4 py-2.5 text-sm font-medium transition ${
                 isActive
                   ? "bg-[color:var(--bg)] text-white"

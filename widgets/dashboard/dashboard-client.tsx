@@ -1,0 +1,2061 @@
+"use client";
+
+import { startTransition, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { toast } from "sonner";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+
+import {
+  exportAnalyticsCsv,
+  getCompanies,
+  getEmployment,
+  getExperience,
+  getMe,
+  logout as logoutRequest,
+  getRegions,
+  getSalaryCalc,
+  getSalaryHistogram,
+  getSkillCard,
+  getSkillBreakdown,
+  getSkillGap,
+  getSkillsCompare,
+  getSkills,
+  getSalaries,
+  getSummary,
+  getTrends,
+  getTrendingSkills,
+  listParseRuns,
+  listVacancies,
+  triggerParse,
+  type CompanyStat,
+  type CurrentUser,
+  type LabeledCount,
+  type MissingSkill,
+  type MonthlyTrend as Trend,
+  type Page as ApiPage,
+  type ParseRun,
+  type RegionStat,
+  type SalaryBucket,
+  type SalaryCalcResult,
+  type SalaryRow as Salary,
+  type SkillCard as ApiSkillCard,
+  type SkillCompareItem,
+  type SkillCount as Skill,
+  type SkillGapResult,
+  type SkillGroup,
+  type Summary,
+  type TrendingSkill,
+  type Vacancy as ApiVacancy,
+  type VacancySource,
+} from "@/lib/api";
+import { ActionButton, MetricCard, Panel } from "@/widgets/dashboard/primitives";
+
+interface ChartPayload {
+  type: "skills" | "salaries" | "trends" | "regions" | "experience" | "employment" | "companies" | "salary_histogram" | "skill_compare" | "generic_bar";
+  data: Skill[] | Salary[] | Trend[] | RegionStat[] | CompanyStat[] | LabeledCount[] | SalaryBucket[] | SkillCompareItem[] | { label: string; value: number }[];
+}
+
+type TabId = "overview" | "skills" | "salaries" | "trends" | "market" | "ai" | "salary-calc" | "skill-gap";
+
+const tabToPath: Record<TabId, string> = {
+  overview: "/dashboard",
+  skills: "/dashboard/skills",
+  salaries: "/dashboard/salaries",
+  trends: "/dashboard/trends",
+  market: "/dashboard/market",
+  "salary-calc": "/dashboard/calculator",
+  "skill-gap": "/dashboard/skill-gap",
+  ai: "/dashboard",
+};
+
+const pathToTab: Record<string, TabId> = {
+  "/dashboard": "overview",
+  "/dashboard/skills": "skills",
+  "/dashboard/salaries": "salaries",
+  "/dashboard/trends": "trends",
+  "/dashboard/market": "market",
+  "/dashboard/calculator": "salary-calc",
+  "/dashboard/skill-gap": "skill-gap",
+};
+
+const sourceOptions: { id: VacancySource; label: string; note: string }[] = [
+  { id: "hh", label: "HH", note: "Основная аналитическая база" },
+  { id: "telegram", label: "Telegram", note: "Живой неформальный слой рынка" },
+  { id: "all", label: "Все", note: "Общая картина по двум источникам" },
+];
+
+const sourceTitles: Record<VacancySource, string> = {
+  hh: "HH как аналитическое ядро",
+  telegram: "Telegram как живой слой рынка",
+  all: "Сводная картина по двум источникам",
+};
+
+const sourceDescriptions: Record<VacancySource, string> = {
+  hh: "Используй этот режим для устойчивой аналитики, зарплатных сравнений и структурированных ответов AI.",
+  telegram: "Используй этот режим, чтобы смотреть сигналы из каналов, живые роли и менее формальные требования.",
+  all: "Используй этот режим для общей картины, но помни: HH и Telegram имеют разную структуру и качество данных.",
+};
+
+const chatExamples: Record<VacancySource, string[]> = {
+  hh: [
+    "Какие навыки сейчас самые востребованные на HH?",
+    "Какие навыки на HH дают самую высокую зарплату?",
+    "Как менялся спрос на backend-вакансии по месяцам?",
+  ],
+  telegram: [
+    "Что чаще всего публикуют в Telegram-каналах за последние дни?",
+    "Какие роли и навыки чаще встречаются в Telegram?",
+    "Есть ли зарплатные сигналы по Telegram-вакансиям?",
+  ],
+  all: [
+    "Чем Telegram рынок отличается от HH по навыкам?",
+    "Какие технологии лидируют в общей выборке?",
+    "Что сильнее влияет на рынок: HH или Telegram-сигналы?",
+  ],
+};
+
+const chartColors = ["#0f766e", "#f59e0b", "#1d4ed8", "#dc2626", "#7c3aed", "#0891b2"];
+
+const fmtInt = (value: number) => new Intl.NumberFormat("ru-RU").format(value);
+const fmtSalary = (value: number) => `${new Intl.NumberFormat("ru-KZ", { maximumFractionDigits: 0 }).format(value)} ₸`;
+const clientBackendBase = process.env.NEXT_PUBLIC_API_URL ?? "/api-proxy";
+
+export default function DashboardClient() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const answerRef = useRef<HTMLDivElement>(null);
+
+  const [source, setSource] = useState<VacancySource>("hh");
+  const activeTab = pathToTab[pathname] ?? "overview";
+  const setActiveTab = (id: TabId) => router.push(tabToPath[id]);
+  const [salaryCategory, setSalaryCategory] = useState("all");
+
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [skillGroups, setSkillGroups] = useState<SkillGroup[]>([]);
+  const [salaries, setSalaries] = useState<Salary[]>([]);
+  const [salaryHistogram, setSalaryHistogram] = useState<SalaryBucket[]>([]);
+  const [trends, setTrends] = useState<Trend[]>([]);
+  const [regions, setRegions] = useState<RegionStat[]>([]);
+  const [experience, setExperience] = useState<LabeledCount[]>([]);
+  const [employment, setEmployment] = useState<LabeledCount[]>([]);
+  const [companies, setCompanies] = useState<CompanyStat[]>([]);
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [trendingSkills, setTrendingSkills] = useState<TrendingSkill[]>([]);
+  const [compareRows, setCompareRows] = useState<SkillCompareItem[]>([]);
+  const [selectedSkill, setSelectedSkill] = useState("");
+  const [skillCard, setSkillCard] = useState<ApiSkillCard | null>(null);
+  const [skillCardLoading, setSkillCardLoading] = useState(false);
+  const [skillCardError, setSkillCardError] = useState("");
+  const [vacancyQuery, setVacancyQuery] = useState("");
+  const [vacancySearch, setVacancySearch] = useState("");
+  const [vacancySkill, setVacancySkill] = useState("");
+  const [vacancyWithSalary, setVacancyWithSalary] = useState(false);
+  const [vacancySource, setVacancySource] = useState<"all" | "hh" | "telegram">("all");
+  const [vacanciesPageNumber, setVacanciesPageNumber] = useState(1);
+  const [vacancies, setVacancies] = useState<ApiPage<ApiVacancy> | null>(null);
+  const [selectedVacancy, setSelectedVacancy] = useState<ApiVacancy | null>(null);
+  const [vacanciesLoading, setVacanciesLoading] = useState(false);
+  const [csvLoading, setCsvLoading] = useState(false);
+
+  const [salaryCalcSkill, setSalaryCalcSkill] = useState("");
+  const [salaryCalcExp, setSalaryCalcExp] = useState("");
+  const [salaryCalcRegion, setSalaryCalcRegion] = useState("");
+  const [salaryCalcResult, setSalaryCalcResult] = useState<SalaryCalcResult | null>(null);
+  const [salaryCalcLoading, setSalaryCalcLoading] = useState(false);
+  const [salaryCalcError, setSalaryCalcError] = useState("");
+
+  const [skillGapInput, setSkillGapInput] = useState("");
+  const [skillGapSelected, setSkillGapSelected] = useState<string[]>([]);
+  const [skillGapResult, setSkillGapResult] = useState<SkillGapResult | null>(null);
+  const [skillGapLoading, setSkillGapLoading] = useState(false);
+  const [skillGapError, setSkillGapError] = useState("");
+
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [chatChart, setChatChart] = useState<ChartPayload | null>(null);
+  const [chatLoading, setChatLoading] = useState(false);
+
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [parseRuns, setParseRuns] = useState<ParseRun[]>([]);
+  const [parseRunsLoading, setParseRunsLoading] = useState(false);
+  const [parseTriggerLoading, setParseTriggerLoading] = useState<"hh" | "telegram" | null>(null);
+  const [parseTriggerError, setParseTriggerError] = useState("");
+  const [activeParseRunId, setActiveParseRunId] = useState<string | null>(null);
+  const [parseStreamStatus, setParseStreamStatus] = useState("");
+  const parseStreamRef = useRef<AbortController | null>(null);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const skillChips = [...skills.slice(0, 6), ...trendingSkills.slice(0, 6).map((item) => ({ skill: item.skill, count: item.current_count }))]
+    .filter((item, index, items) => items.findIndex((candidate) => candidate.skill === item.skill) === index);
+
+  async function loadParseRuns() {
+    setParseRunsLoading(true);
+    try {
+      const runs = await listParseRuns();
+      setParseRuns(runs);
+    } finally {
+      setParseRunsLoading(false);
+    }
+  }
+
+  function streamParseStatus(runId: string) {
+    const controller = new AbortController();
+    parseStreamRef.current?.abort();
+    parseStreamRef.current = controller;
+    setParseStreamStatus("Запущен...");
+
+    const base = process.env.NEXT_PUBLIC_API_URL ?? "/api-proxy";
+
+    void (async () => {
+      try {
+        const response = await fetch(`${base}/parser/runs/${runId}/stream`, {
+          signal: controller.signal,
+          credentials: "include",
+        });
+
+        const reader = response.body?.getReader();
+        if (!reader) return;
+
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            try {
+              const payload = JSON.parse(line.slice(6)) as { status: string; vacancies_fetched?: number; error?: string };
+              if (payload.status === "done") {
+                setParseStreamStatus(`Готово — загружено ${payload.vacancies_fetched ?? 0} вакансий`);
+                setActiveParseRunId(null);
+                void loadParseRuns();
+                return;
+              } else if (payload.status === "failed") {
+                setParseStreamStatus(`Ошибка: ${payload.error ?? "неизвестная"}`);
+                setActiveParseRunId(null);
+                void loadParseRuns();
+                return;
+              } else {
+                setParseStreamStatus("Идёт парсинг...");
+              }
+            } catch {
+              // ignore
+            }
+          }
+        }
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          setParseStreamStatus("Соединение прервано");
+          setActiveParseRunId(null);
+        }
+      }
+    })();
+  }
+
+  async function handleTriggerParse(parseType: "hh" | "telegram") {
+    const label = parseType === "hh" ? "HH" : "Telegram";
+    if (!confirm(`Запустить парсер ${label}? Это займёт несколько минут.`)) return;
+
+    setParseTriggerError("");
+    setParseTriggerLoading(parseType);
+    try {
+      const result = await triggerParse(parseType);
+      setActiveParseRunId(result.run_id);
+      setParseStreamStatus("Запускаю...");
+      streamParseStatus(result.run_id);
+      await loadParseRuns();
+      toast.success(`Парсер ${label} запущен`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Ошибка запуска";
+      setParseTriggerError(msg);
+      toast.error(`Не удалось запустить ${label}: ${msg}`);
+    } finally {
+      setParseTriggerLoading(null);
+    }
+  }
+
+  async function loadDashboard(nextSource: VacancySource) {
+    setDashboardLoading(true);
+    try {
+      const [
+        topSkills,
+        grouped,
+        salaryRows,
+        histogramRows,
+        trendRows,
+        regionRows,
+        expRows,
+        empRows,
+        companyRows,
+        summaryRow,
+        trendingRows,
+      ] =
+        await Promise.all([
+          getSkills(12, nextSource),
+          getSkillBreakdown(6, nextSource),
+          getSalaries(undefined, nextSource),
+          getSalaryHistogram(nextSource),
+          getTrends(nextSource),
+          getRegions(nextSource),
+          getExperience(undefined, nextSource),
+          getEmployment(undefined, nextSource),
+          getCompanies(nextSource),
+          getSummary(nextSource),
+          getTrendingSkills(8, nextSource),
+        ]);
+
+      setSkills(topSkills);
+      setSkillGroups(grouped);
+      setSalaries(salaryRows.slice(0, 12));
+      setSalaryHistogram(histogramRows);
+      setTrends(trendRows);
+      setRegions(regionRows);
+      setExperience(expRows);
+      setEmployment(empRows);
+      setCompanies(companyRows);
+      setSummary(summaryRow);
+      setTrendingSkills(trendingRows);
+
+      const compareSkillNames = topSkills.slice(0, 3).map((item) => item.skill);
+      if (compareSkillNames.length >= 2) {
+        const compareData = await getSkillsCompare(compareSkillNames, nextSource);
+        setCompareRows(compareData);
+      } else {
+        setCompareRows([]);
+      }
+
+      const fallbackSkill = topSkills[0]?.skill ?? trendingRows[0]?.skill ?? "";
+      if (fallbackSkill && !selectedSkill) {
+        setSelectedSkill(fallbackSkill);
+      }
+    } finally {
+      setDashboardLoading(false);
+    }
+  }
+
+  async function loadSalaries(nextSource: VacancySource, category: string) {
+    const rows = await getSalaries(category === "all" ? undefined : category, nextSource);
+    setSalaries(rows.slice(0, 12));
+  }
+
+  useEffect(() => {
+    let active = true;
+
+    void (async () => {
+      try {
+        const user = await getMe();
+        if (!active) return;
+        setCurrentUser(user);
+      } catch {
+        if (!active) return;
+        router.replace("/login");
+      } finally {
+        if (active) setAuthLoading(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
+  useEffect(() => {
+    return () => {
+      parseStreamRef.current?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (authLoading || !currentUser) return;
+    startTransition(() => {
+      void loadDashboard(source);
+    });
+  }, [authLoading, currentUser, source]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (authLoading || !currentUser) return;
+    startTransition(() => {
+      void loadSalaries(source, salaryCategory);
+    });
+  }, [authLoading, currentUser, salaryCategory, source]);
+
+  useEffect(() => {
+    if (authLoading || !currentUser || !selectedSkill) return;
+
+    let active = true;
+
+    startTransition(() => {
+      setSkillCardLoading(true);
+      setSkillCardError("");
+      void getSkillCard(selectedSkill, source)
+        .then((data) => {
+          if (!active) return;
+          setSkillCard(data);
+        })
+        .catch(() => {
+          if (!active) return;
+          setSkillCard(null);
+          setSkillCardError("Карточку навыка пока не удалось загрузить.");
+        })
+        .finally(() => {
+          if (active) setSkillCardLoading(false);
+        });
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [authLoading, currentUser, selectedSkill, source]);
+
+  useEffect(() => {
+    if (authLoading || !currentUser) return;
+
+    let active = true;
+
+    startTransition(() => {
+      setVacanciesLoading(true);
+      void listVacancies({
+        page: vacanciesPageNumber,
+        size: 8,
+        source: vacancySource,
+        search: vacancySearch || undefined,
+        skill: vacancySkill || undefined,
+        with_salary: vacancyWithSalary || undefined,
+      })
+        .then((page) => {
+          if (!active) return;
+          setVacancies(page);
+          setSelectedVacancy((current) =>
+            current && page.items.some((item) => item.id === current.id) ? current : (page.items[0] ?? null)
+          );
+        })
+        .finally(() => {
+          if (active) setVacanciesLoading(false);
+        });
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [authLoading, currentUser, vacancySource, vacanciesPageNumber, vacancySearch, vacancySkill, vacancyWithSalary]);
+
+  async function runSalaryCalc(event: React.FormEvent) {
+    event.preventDefault();
+    if (!salaryCalcSkill.trim()) return;
+    setSalaryCalcLoading(true);
+    setSalaryCalcError("");
+    setSalaryCalcResult(null);
+    try {
+      const result = await getSalaryCalc({ skill: salaryCalcSkill.trim(), experience: salaryCalcExp || undefined, region: salaryCalcRegion || undefined, source });
+      if (!result) setSalaryCalcError("Нет данных по выбранным параметрам. Попробуй другой навык или убери фильтры.");
+      else setSalaryCalcResult(result);
+    } catch {
+      setSalaryCalcError("Ошибка при получении данных.");
+    } finally {
+      setSalaryCalcLoading(false);
+    }
+  }
+
+  function addSkillGapSkill() {
+    const skill = skillGapInput.trim();
+    if (!skill || skillGapSelected.includes(skill)) return;
+    setSkillGapSelected((prev) => [...prev, skill]);
+    setSkillGapInput("");
+  }
+
+  function removeSkillGapSkill(skill: string) {
+    setSkillGapSelected((prev) => prev.filter((s) => s !== skill));
+  }
+
+  async function runSkillGap(event: React.FormEvent) {
+    event.preventDefault();
+    if (!skillGapSelected.length) return;
+    setSkillGapLoading(true);
+    setSkillGapError("");
+    setSkillGapResult(null);
+    try {
+      const result = await getSkillGap(skillGapSelected, source);
+      setSkillGapResult(result);
+    } catch {
+      setSkillGapError("Ошибка при анализе навыков.");
+    } finally {
+      setSkillGapLoading(false);
+    }
+  }
+
+  async function askAI(event: React.FormEvent) {
+    event.preventDefault();
+    if (!question.trim()) return;
+
+    setAnswer("");
+    setChatChart(null);
+    setChatLoading(true);
+
+    try {
+      const response = await fetch(`${clientBackendBase}/ai/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ question, source }),
+        credentials: "include",
+      });
+
+      const reader = response.body?.getReader();
+      if (!reader) return;
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (line.startsWith("chart: ")) {
+            try {
+              setChatChart(JSON.parse(line.slice(7)));
+            } catch {
+              // ignore invalid chart payload
+            }
+          } else if (line.startsWith("data: ")) {
+            const rawChunk = line.slice(6);
+            let chunk = rawChunk;
+            try {
+              chunk = JSON.parse(rawChunk) as string;
+            } catch {
+              chunk = rawChunk;
+            }
+            if (chunk === "[DONE]") continue;
+            setAnswer((prev) => prev + chunk);
+            setTimeout(() => answerRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
+          }
+        }
+      }
+    } finally {
+      setChatLoading(false);
+    }
+  }
+
+  async function logout() {
+    try {
+      await logoutRequest();
+    } catch {
+      // ignore logout transport errors and clear legacy client state
+    }
+    localStorage.removeItem("token");
+    router.replace("/login");
+  }
+
+  async function downloadCsv() {
+    setCsvLoading(true);
+    try {
+      const blob = await exportAnalyticsCsv({
+        source,
+        category: salaryCategory === "all" ? undefined : salaryCategory,
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `it-market-${source}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success("CSV скачан");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Ошибка экспорта";
+      toast.error(msg);
+    } finally {
+      setCsvLoading(false);
+    }
+  }
+
+  function submitVacancySearch(event: React.FormEvent) {
+    event.preventDefault();
+    setVacanciesPageNumber(1);
+    setVacancySearch(vacancyQuery.trim());
+  }
+
+  const coverage = summary?.total_vacancies
+    ? Math.round((summary.with_salary / summary.total_vacancies) * 100)
+    : 0;
+
+  const sourceMix = summary
+    ? [
+        { name: "HH", value: summary.hh_vacancies, fill: "#0f766e" },
+        { name: "Telegram", value: summary.telegram_vacancies, fill: "#f59e0b" },
+      ].filter((item) => item.value > 0)
+    : [];
+
+  return (
+    <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 pb-10 pt-6 sm:px-6 lg:px-8">
+        <header className="rounded-[28px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5 md:p-7">
+          <div className="rounded-[26px] bg-[color:var(--bg)] px-5 py-4 text-[#fbf4df]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {sourceOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => setSource(option.id)}
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                      source === option.id
+                        ? "bg-[color:var(--surface)] text-[color:var(--text)]"
+                        : "bg-[color:var(--surface-2)] text-[color:var(--text-dim)] hover:bg-[color:var(--surface-2)] hover:text-white"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              {currentUser?.is_admin && (
+                <button
+                  onClick={() => {
+                    setShowAdminPanel((v) => !v);
+                    if (!showAdminPanel) void loadParseRuns();
+                  }}
+                  className="rounded-full border border-[color:var(--surface-2)] px-4 py-2 text-sm text-[color:var(--text-dim)] transition hover:border-[color:var(--border-strong)] hover:text-white"
+                >
+                  {showAdminPanel ? "Скрыть админ" : "Админ"}
+                </button>
+              )}
+            </div>
+            <div className="mt-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[color:var(--muted)]">Активный режим</p>
+              <h2 className="mt-1 text-lg font-semibold">{sourceTitles[source]}</h2>
+            </div>
+          </div>
+          {currentUser?.is_admin && showAdminPanel && (
+            <div className="mt-6 border border-[color:var(--border)] bg-[color:var(--bg-2)] p-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--accent)]">Панель администратора</p>
+                  <h3 className="mt-1 text-lg font-semibold text-[color:var(--text)]">Управление парсингом</h3>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => void handleTriggerParse("hh")}
+                    disabled={!!parseTriggerLoading || !!activeParseRunId}
+                    className="rounded-full bg-[color:var(--bg)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {parseTriggerLoading === "hh" ? "Запускаю HH..." : "Запустить HH"}
+                  </button>
+                  <button
+                    onClick={() => void handleTriggerParse("telegram")}
+                    disabled={!!parseTriggerLoading || !!activeParseRunId}
+                    className="rounded-full bg-[color:var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--bg-2)]0 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {parseTriggerLoading === "telegram" ? "Запускаю TG..." : "Запустить Telegram"}
+                  </button>
+                  <button
+                    onClick={() => void loadParseRuns()}
+                    disabled={parseRunsLoading}
+                    className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2.5 text-sm font-semibold text-[color:var(--text)] transition hover:border-[color:var(--border-strong)] disabled:opacity-50"
+                  >
+                    Обновить
+                  </button>
+                </div>
+              </div>
+
+              {parseTriggerError && (
+                <div className="mt-3 bg-[rgba(255,130,114,0.08)] px-4 py-3 text-sm text-[color:var(--red)]">{parseTriggerError}</div>
+              )}
+
+              {activeParseRunId && (
+                <div className="mt-3 flex items-center gap-3 bg-[color:var(--bg-2)] px-4 py-3 text-sm text-[color:var(--green)]">
+                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[color:var(--bg-2)]0" />
+                  {parseStreamStatus}
+                </div>
+              )}
+
+              <div className="mt-5">
+                {parseRunsLoading && <div className="text-sm text-[color:var(--text-dim)]">Загружаю историю запусков...</div>}
+                {!parseRunsLoading && parseRuns.length === 0 && (
+                  <div className="text-sm text-[color:var(--text-dim)]">История запусков пуста.</div>
+                )}
+                {!parseRunsLoading && parseRuns.length > 0 && (
+                  <div className="space-y-2">
+                    {parseRuns.slice(0, 8).map((run) => (
+                      <div
+                        key={run.id}
+                        className={`flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm ${
+                          run.status === "done"
+                            ? "bg-[color:var(--bg-2)] text-[color:var(--green)]"
+                            : run.status === "failed"
+                              ? "bg-[rgba(255,130,114,0.08)] text-[color:var(--red)]"
+                              : "bg-[color:var(--bg-2)] text-[color:var(--accent)]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${
+                            run.status === "done" ? "bg-[rgba(164,228,123,0.2)]" : run.status === "failed" ? "bg-[rgba(255,130,114,0.2)]" : "bg-[color:var(--accent)]"
+                          }`}>
+                            {run.status}
+                          </span>
+                          <span className="font-medium">{run.parse_type.toUpperCase()}</span>
+                          {run.vacancies_fetched != null && <span>· {fmtInt(run.vacancies_fetched)} вакансий</span>}
+                          {run.error && <span className="text-xs opacity-75">· {run.error}</span>}
+                        </div>
+                        <span className="text-xs opacity-60">
+                          {run.started_at ? new Date(run.started_at).toLocaleString("ru-RU") : "—"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </header>
+
+        {dashboardLoading ? (
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <div key={index} className="h-36 animate-pulse bg-[color:var(--surface)]" />
+            ))}
+          </div>
+        ) : (
+          <main className="mt-8 flex-1">
+            {activeTab === "overview" && summary && (
+              <div className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <MetricCard
+                    label="Всего вакансий"
+                    value={fmtInt(summary.total_vacancies)}
+                    accent="teal"
+                    detail={source === "all" ? "По двум источникам" : sourceTitles[source]}
+                  />
+                  <MetricCard
+                    label="С указанной зарплатой"
+                    value={fmtInt(summary.with_salary)}
+                    accent="amber"
+                    detail={`Покрытие: ${coverage}%`}
+                  />
+                  <MetricCard
+                    label="HH в базе"
+                    value={fmtInt(summary.hh_vacancies)}
+                    accent="navy"
+                    detail="Структурированная база рынка"
+                  />
+                  <MetricCard
+                    label="Telegram в базе"
+                    value={fmtInt(summary.telegram_vacancies)}
+                    accent="rose"
+                    detail="Живые сигналы из каналов"
+                  />
+                </div>
+
+                <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+                  <Panel
+                    eyebrow="Рынок по времени"
+                    title={`Динамика вакансий: ${sourceTitles[source]}`}
+                    description="Смотри тренд отдельно по активному источнику, чтобы не путать структурированный HH и более шумный Telegram."
+                  >
+                    <TrendsChart data={trends} />
+                  </Panel>
+
+                  <Panel
+                    eyebrow="Source mix"
+                    title="Как распределены источники"
+                    description="Эта карточка всегда показывает общий баланс данных в базе, даже если ты анализируешь конкретный источник."
+                  >
+                    <SourceMixCard
+                      data={sourceMix}
+                      hh={summary.hh_vacancies}
+                      telegram={summary.telegram_vacancies}
+                    />
+                  </Panel>
+                </div>
+
+                <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+                  <Panel
+                    eyebrow="Лидирующие навыки"
+                    title={`Что тянет рынок в режиме ${source.toUpperCase()}`}
+                    description="Здесь ты видишь наиболее частые технологические сигналы по выбранному источнику."
+                  >
+                    <SkillsChart data={skills} />
+                  </Panel>
+
+                  <Panel
+                    eyebrow="Сегменты"
+                    title="Как распределяются опыт и занятость"
+                    description="Эти два графика помогают быстро понять, что требует рынок: младших, middle/senior или конкретный формат работы."
+                  >
+                    <div className="space-y-6">
+                      <MiniDistributionChart data={experience} tone="#0f766e" />
+                      <MiniDistributionChart data={employment} tone="#b45309" />
+                    </div>
+                  </Panel>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "skills" && (
+              <div className="space-y-6">
+                <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+                  <Panel
+                    eyebrow="Навыки"
+                    title={`Топ навыков в режиме ${source.toUpperCase()}`}
+                    description="HH даёт более чистую структуру, Telegram показывает живой спрос и новые сигналы из каналов."
+                  >
+                    <SkillsChart data={skills} />
+                  </Panel>
+
+                  <Panel
+                    eyebrow="Новые backend-фичи"
+                    title="Трендовые навыки и быстрый compare"
+                    description="Этот блок уже использует новые endpoints `skills/trending` и `skills/compare`."
+                  >
+                    <div className="space-y-6">
+                      <TrendingSkillsList
+                        data={trendingSkills}
+                        selectedSkill={selectedSkill}
+                        onSelect={(skill) => setSelectedSkill(skill)}
+                      />
+                      <SkillCompareGrid data={compareRows} />
+                    </div>
+                  </Panel>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {skillGroups.map((group) => (
+                    <div key={group.category} className="rounded-[24px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5">
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--muted)]">{group.category}</p>
+                      <h3 className="mt-2 text-lg font-semibold text-[color:var(--text)]">{group.label}</h3>
+                      <div className="mt-4 space-y-3">
+                        {group.items.map((item) => (
+                          <div key={`${group.category}-${item.skill}`} className="flex items-center justify-between gap-4 rounded-2xl bg-[color:var(--bg-2)] px-3 py-2">
+                            <span className="text-sm text-[color:var(--text)]">{item.skill}</span>
+                            <span className="text-sm font-semibold text-[color:var(--text)]">{item.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Panel
+                  eyebrow="Skill card"
+                  title={selectedSkill ? `Карточка навыка: ${selectedSkill}` : "Карточка навыка"}
+                  description="Карточка собирается новым backend-эндпоинтом и даёт быстрый срез по зарплатам, регионам, компаниям и связанным технологиям."
+                >
+                  <div className="mb-5 flex flex-wrap gap-2">
+                    {skillChips.map((item) => (
+                      <button
+                        key={`skill-chip-${item.skill}`}
+                        onClick={() => setSelectedSkill(item.skill)}
+                        className={`rounded-full px-4 py-2 text-sm transition ${
+                          selectedSkill === item.skill
+                            ? "bg-[color:var(--bg)] text-white"
+                            : "border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] hover:border-[color:var(--border-strong)]"
+                        }`}
+                      >
+                        {item.skill}
+                      </button>
+                    ))}
+                  </div>
+
+                  {skillCardLoading && <div className="rounded-[24px] bg-[color:var(--bg-2)] p-6 text-sm text-[color:var(--text-dim)]">Загружаю карточку навыка...</div>}
+                  {!skillCardLoading && skillCardError && <div className="rounded-[24px] bg-[rgba(255,130,114,0.08)] p-6 text-sm text-[color:var(--red)]">{skillCardError}</div>}
+                  {!skillCardLoading && !skillCardError && skillCard && <SkillCardPanel card={skillCard} />}
+                </Panel>
+              </div>
+            )}
+
+            {activeTab === "salaries" && (
+              <div className="space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { id: "all", label: "Все" },
+                      ...skillGroups.map((group) => ({ id: group.category, label: group.label })),
+                    ].map((option) => (
+                      <button
+                        key={option.id}
+                        onClick={() => setSalaryCategory(option.id)}
+                        className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                          salaryCategory === option.id
+                            ? "bg-[color:var(--bg)] text-white"
+                            : "border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] hover:border-[color:var(--border-strong)]"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={downloadCsv}
+                    disabled={csvLoading}
+                    className="rounded-full bg-[color:var(--green)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--green)] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {csvLoading ? "Готовлю CSV..." : "Экспорт CSV"}
+                  </button>
+                </div>
+
+                <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+                  <Panel
+                    eyebrow="Компенсация"
+                    title={`Средние зарплаты по навыкам: ${sourceTitles[source]}`}
+                    description="Зарплатные графики наиболее полезны в HH-режиме, но Telegram тоже может дать сигналы там, где в постах указывают вилки."
+                  >
+                    <SalariesChart data={salaries} />
+                  </Panel>
+
+                  <Panel
+                    eyebrow="Распределение"
+                    title="Гистограмма зарплат"
+                    description="Новый backend endpoint показывает, в каких зарплатных диапазонах сейчас сосредоточен рынок."
+                  >
+                    <SalaryHistogramChart data={salaryHistogram} />
+                  </Panel>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "trends" && (
+              <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+                <Panel
+                  eyebrow="Тренды"
+                  title={`Динамика вакансий в режиме ${source.toUpperCase()}`}
+                  description="Проверяй рост или спад без смешивания разных типов данных."
+                >
+                  <TrendsChart data={trends} />
+                </Panel>
+
+                <Panel
+                  eyebrow="География"
+                  title="Куда смещается активность"
+                  description="Если в Telegram много записей без региона, это сразу будет заметно по доле 'Не указано'."
+                >
+                  <RegionsChart data={regions} />
+                </Panel>
+              </div>
+            )}
+
+            {activeTab === "market" && summary && (
+              <div className="space-y-6">
+                <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+                  <Panel
+                    eyebrow="Работодатели"
+                    title={`Кто активнее нанимает в режиме ${source.toUpperCase()}`}
+                    description="В HH здесь будет реальная структура работодателей. В Telegram это чаще агрегаторы, каналы и агентства."
+                  >
+                    <CompaniesChart data={companies} />
+                  </Panel>
+
+                  <Panel
+                    eyebrow="Срез рынка"
+                    title="Опыт и занятость"
+                    description="Этот блок помогает быстро почувствовать форму рынка: вакансии для middle/senior, full-time или более гибкие форматы."
+                  >
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <DistributionChart title="По опыту" data={experience} tone="#1d4ed8" />
+                      <DistributionChart title="По занятости" data={employment} tone="#dc2626" />
+                    </div>
+                  </Panel>
+                </div>
+
+                <Panel
+                  eyebrow="Каталог вакансий"
+                  title="Новые backend-фильтры и пагинация"
+                  description="Этот блок уже использует новый `/vacancies` endpoint: поиск, фильтр по навыку, фильтр по наличию зарплаты и постраничную навигацию."
+                >
+                  <form onSubmit={submitVacancySearch} className="mb-5 flex flex-col gap-3 lg:flex-row">
+                    <input
+                      value={vacancyQuery}
+                      onChange={(event) => setVacancyQuery(event.target.value)}
+                      placeholder="Поиск по названию или компании"
+                      className="min-w-0 flex-1 rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-2)] px-4 py-3 text-sm text-[color:var(--text)] outline-none transition focus:border-[color:var(--border-strong)]"
+                    />
+                    <select
+                      value={vacancySource}
+                      onChange={(event) => {
+                        setVacancySource(event.target.value as "all" | "hh" | "telegram");
+                        setVacanciesPageNumber(1);
+                      }}
+                      className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm text-[color:var(--text)] outline-none"
+                    >
+                      <option value="all">Все источники</option>
+                      <option value="hh">hh.kz</option>
+                      <option value="telegram">Telegram</option>
+                    </select>
+                    <select
+                      value={vacancySkill}
+                      onChange={(event) => {
+                        setVacancySkill(event.target.value);
+                        setVacanciesPageNumber(1);
+                      }}
+                      className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm text-[color:var(--text)] outline-none"
+                    >
+                      <option value="">Все навыки</option>
+                      {skills.slice(0, 10).map((item) => (
+                        <option key={item.skill} value={item.skill}>
+                          {item.skill}
+                        </option>
+                      ))}
+                    </select>
+                    <label className="flex items-center gap-2 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm text-[color:var(--text)]">
+                      <input
+                        type="checkbox"
+                        checked={vacancyWithSalary}
+                        onChange={(event) => {
+                          setVacancyWithSalary(event.target.checked);
+                          setVacanciesPageNumber(1);
+                        }}
+                        className="h-4 w-4 rounded border-[color:var(--border)]"
+                      />
+                      Только с зарплатой
+                    </label>
+                    <button
+                      type="submit"
+                      className="rounded-2xl bg-[color:var(--bg)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--surface-2)]"
+                    >
+                      Найти
+                    </button>
+                  </form>
+
+                  <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
+                    <div className="space-y-3">
+                      {vacanciesLoading && (
+                        <div className="rounded-[24px] bg-[color:var(--bg-2)] p-6 text-sm text-[color:var(--text-dim)]">Загружаю вакансии...</div>
+                      )}
+                      {!vacanciesLoading &&
+                        vacancies?.items.map((vacancy) => (
+                          <button
+                            key={vacancy.id}
+                            onClick={() => setSelectedVacancy(vacancy)}
+                            className={`w-full border p-4 text-left transition ${
+                              selectedVacancy?.id === vacancy.id
+                                ? "border-[color:var(--border-strong)] bg-[color:var(--bg)] text-white"
+                                : "border-[color:var(--border)] bg-[color:var(--bg-2)] hover:border-[color:var(--border-strong)]"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <div className="text-lg font-semibold">{vacancy.title}</div>
+                                <div className={`mt-1 text-sm ${selectedVacancy?.id === vacancy.id ? "text-[color:var(--text-dim)]" : "text-[color:var(--text-dim)]"}`}>
+                                  {vacancy.company ?? "Компания не указана"} · {vacancy.area_name ?? "Регион не указан"}
+                                </div>
+                              </div>
+                              <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${selectedVacancy?.id === vacancy.id ? "bg-[color:var(--surface-2)] text-white" : "bg-[color:var(--border-strong)] text-[color:var(--text)]"}`}>
+                                {vacancy.source}
+                              </span>
+                            </div>
+                            <div className={`mt-3 text-sm ${selectedVacancy?.id === vacancy.id ? "text-[color:var(--text-dim)]" : "text-[color:var(--text-dim)]"}`}>
+                              {formatVacancySalary(vacancy)}
+                            </div>
+                          </button>
+                        ))}
+
+                      {!vacanciesLoading && vacancies?.items.length === 0 && (
+                        <div className="rounded-[24px] bg-[color:var(--bg-2)] p-6 text-sm text-[color:var(--text-dim)]">По этим фильтрам вакансий не найдено.</div>
+                      )}
+
+                      {vacancies && vacancies.pages > 1 && (
+                        <div className="flex items-center justify-between gap-3 bg-[color:var(--bg-2)] px-4 py-3 text-sm text-[color:var(--text-dim)]">
+                          <button
+                            onClick={() => setVacanciesPageNumber((page) => Math.max(1, page - 1))}
+                            disabled={vacancies.page === 1}
+                            className="rounded-full border border-[color:var(--border)] px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Назад
+                          </button>
+                          <span>
+                            Страница {vacancies.page} из {vacancies.pages} · {fmtInt(vacancies.total)} вакансий
+                          </span>
+                          <button
+                            onClick={() => setVacanciesPageNumber((page) => Math.min(vacancies.pages, page + 1))}
+                            disabled={vacancies.page === vacancies.pages}
+                            className="rounded-full border border-[color:var(--border)] px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Дальше
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <VacancyDetailPanel vacancy={selectedVacancy} />
+                  </div>
+                </Panel>
+
+                <Panel
+                  eyebrow="Позиционирование источников"
+                  title="Как читать этот продукт"
+                  description="Не надо пытаться воспринимать HH и Telegram как одинаковые источники. Их сила в разных сценариях."
+                >
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <SourceNarrativeCard
+                      title="HH"
+                      accent="teal"
+                      text="Основной аналитический слой: зарплаты, тренды, работодатели и более устойчивые ответы AI."
+                    />
+                    <SourceNarrativeCard
+                      title="Telegram"
+                      accent="amber"
+                      text="Живой слой рынка: сигналы из каналов, быстрые публикации, вариативность ролей и менее формальные формулировки."
+                    />
+                    <SourceNarrativeCard
+                      title="Все"
+                      accent="navy"
+                      text="Сводный режим для общей картины. Удобен для сравнения и high-level обзора, но не должен скрывать различие источников."
+                    />
+                  </div>
+                </Panel>
+              </div>
+            )}
+
+            {activeTab === "salary-calc" && (
+              <div className="grid gap-6 xl:grid-cols-[1fr_1.4fr]">
+                <Panel
+                  eyebrow="Калькулятор зарплаты"
+                  title="Сколько платят за навык?"
+                  description="Выбери технологию, опыт и город — получишь реальный зарплатный срез по данным рынка."
+                >
+                  <form onSubmit={runSalaryCalc} className="space-y-4">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Навык *</label>
+                      <input
+                        value={salaryCalcSkill}
+                        onChange={(e) => setSalaryCalcSkill(e.target.value)}
+                        list="salary-calc-skills-list"
+                        placeholder="Начни вводить: Python, Go, React..."
+                        autoComplete="off"
+                        className="w-full border border-[color:var(--border)] bg-[color:var(--bg-2)] px-4 py-3 text-sm outline-none transition focus:border-[color:var(--border-strong)]"
+                      />
+                      <datalist id="salary-calc-skills-list">
+                        {skillGroups.flatMap((g) => g.items).map((s) => (
+                          <option key={s.skill} value={s.skill} />
+                        ))}
+                      </datalist>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Опыт</label>
+                      <select
+                        value={salaryCalcExp}
+                        onChange={(e) => setSalaryCalcExp(e.target.value)}
+                        className="w-full border border-[color:var(--border)] bg-[color:var(--bg-2)] px-4 py-3 text-sm outline-none transition focus:border-[color:var(--border-strong)]"
+                      >
+                        <option value="">Любой</option>
+                        <option value="noExperience">Без опыта</option>
+                        <option value="between1And3">1–3 года</option>
+                        <option value="between3And6">3–6 лет</option>
+                        <option value="moreThan6">6+ лет</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Город</label>
+                      <select
+                        value={salaryCalcRegion}
+                        onChange={(e) => setSalaryCalcRegion(e.target.value)}
+                        className="w-full border border-[color:var(--border)] bg-[color:var(--bg-2)] px-4 py-3 text-sm outline-none transition focus:border-[color:var(--border-strong)]"
+                      >
+                        <option value="">Любой город</option>
+                        {regions.map((r) => (
+                          <option key={r.region} value={r.region}>{r.region}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={salaryCalcLoading || !salaryCalcSkill.trim()}
+                      className="rounded-full bg-[color:var(--bg)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {salaryCalcLoading ? "Считаю..." : "Рассчитать"}
+                    </button>
+                  </form>
+                  {salaryCalcError && (
+                    <div className="mt-4 bg-[rgba(255,130,114,0.08)] px-4 py-3 text-sm text-[color:var(--red)]">{salaryCalcError}</div>
+                  )}
+                </Panel>
+
+                <div className="space-y-6">
+                  {salaryCalcResult && (
+                    <>
+                      <Panel
+                        eyebrow={salaryCalcResult.skill}
+                        title="Зарплатный срез"
+                        description={`По ${fmtInt(salaryCalcResult.sample_count)} вакансиям с указанной зарплатой`}
+                      >
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="rounded-[20px] bg-[color:var(--bg)] p-4 text-[#fbf4df]">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--muted)]">Медиана</p>
+                              <p className="mt-1.5 text-lg font-bold">{fmtSalary(salaryCalcResult.median_salary_kzt)}</p>
+                            </div>
+                            <div className="rounded-[20px] bg-[color:var(--bg-2)] p-4 text-[color:var(--text)]">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Средняя</p>
+                              <p className="mt-1.5 text-lg font-bold">{fmtSalary(salaryCalcResult.avg_salary_kzt)}</p>
+                            </div>
+                          </div>
+
+                          <div className="rounded-[20px] bg-[color:var(--bg-2)] p-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--green)]">Типичный диапазон</p>
+                            <p className="mt-1 text-sm text-[color:var(--green)]">
+                              {fmtSalary(salaryCalcResult.p25_salary_kzt)}
+                              <span className="mx-2 text-[color:var(--green)]">—</span>
+                              {fmtSalary(salaryCalcResult.p75_salary_kzt)}
+                            </p>
+                            <p className="mt-1 text-xs text-[color:var(--green)]">половина вакансий платит в этом диапазоне</p>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="rounded-[20px] bg-[color:var(--bg-2)] p-4 text-[color:var(--text)]">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Минимум</p>
+                              <p className="mt-1.5 text-base font-bold">{fmtSalary(salaryCalcResult.min_salary_kzt)}</p>
+                            </div>
+                            <div className="rounded-[20px] bg-[color:var(--bg-2)] p-4 text-[color:var(--text)]">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Максимум</p>
+                              <p className="mt-1.5 text-base font-bold">{fmtSalary(salaryCalcResult.max_salary_kzt)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </Panel>
+
+                      {salaryCalcResult.top_companies.length > 0 && (
+                        <Panel
+                          eyebrow="Компании"
+                          title="Кто платит выше медианы"
+                          description="Компании с минимум 2 вакансиями и зарплатой ≥ медианы"
+                        >
+                          <div className="space-y-2">
+                            {salaryCalcResult.top_companies.map((company) => (
+                              <div key={company.company} className="flex items-center justify-between bg-[color:var(--bg-2)] px-4 py-3">
+                                <div>
+                                  <p className="text-sm font-semibold text-[color:var(--text)]">{company.company}</p>
+                                  <p className="text-xs text-[color:var(--text-dim)]">{fmtInt(company.vacancy_count)} вакансий</p>
+                                </div>
+                                <p className="text-sm font-bold text-[color:var(--green)]">{fmtSalary(company.avg_salary_kzt)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </Panel>
+                      )}
+                    </>
+                  )}
+                  {!salaryCalcResult && !salaryCalcLoading && !salaryCalcError && (
+                    <div className="flex h-48 items-center justify-center border border-dashed border-[color:var(--border)] text-sm text-[color:var(--muted)]">
+                      Введи навык и нажми «Рассчитать»
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "skill-gap" && (
+              <div className="grid gap-6 xl:grid-cols-[1fr_1.4fr]">
+                <Panel
+                  eyebrow="Анализ скилл-гэпа"
+                  title="Сколько вакансий тебе доступно?"
+                  description="Введи свои навыки — узнаешь, какой процент рынка ты покрываешь и что стоит изучить дальше."
+                >
+                  <form onSubmit={runSkillGap} className="space-y-4">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-dim)]">Добавить навык</label>
+                      <div className="flex gap-2">
+                        <input
+                          value={skillGapInput}
+                          onChange={(e) => setSkillGapInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSkillGapSkill(); } }}
+                          list="skill-gap-skills-list"
+                          placeholder="Начни вводить: Python, Go..."
+                          autoComplete="off"
+                          className="min-w-0 flex-1 border border-[color:var(--border)] bg-[color:var(--bg-2)] px-4 py-3 text-sm outline-none transition focus:border-[color:var(--border-strong)]"
+                        />
+                        <datalist id="skill-gap-skills-list">
+                          {skillGroups.flatMap((g) => g.items)
+                            .filter((s) => !skillGapSelected.includes(s.skill))
+                            .map((s) => <option key={s.skill} value={s.skill} />)}
+                        </datalist>
+                        <button
+                          type="button"
+                          onClick={addSkillGapSkill}
+                          disabled={!skillGapInput.trim()}
+                          className="flex-shrink-0 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm font-semibold text-[color:var(--text)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text)] disabled:opacity-40"
+                        >
+                          + Добавить
+                        </button>
+                      </div>
+                    </div>
+
+                    {skillGapSelected.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {skillGapSelected.map((skill) => (
+                          <span
+                            key={skill}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--bg)] px-3 py-1.5 text-sm font-medium text-white"
+                          >
+                            {skill}
+                            <button
+                              type="button"
+                              onClick={() => removeSkillGapSkill(skill)}
+                              className="text-[color:var(--muted)] hover:text-white"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={skillGapLoading || skillGapSelected.length === 0}
+                      className="rounded-full bg-[color:var(--bg)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {skillGapLoading ? "Анализирую..." : `Проанализировать${skillGapSelected.length > 0 ? ` (${skillGapSelected.length})` : ""}`}
+                    </button>
+                  </form>
+                  {skillGapError && (
+                    <div className="mt-4 bg-[rgba(255,130,114,0.08)] px-4 py-3 text-sm text-[color:var(--red)]">{skillGapError}</div>
+                  )}
+                </Panel>
+
+                <div className="space-y-6">
+                  {skillGapResult && (
+                    <>
+                      <Panel
+                        eyebrow="Покрытие рынка"
+                        title={`${skillGapResult.match_pct}% вакансий доступно`}
+                        description={`${fmtInt(skillGapResult.matched_vacancies)} из ${fmtInt(skillGapResult.total_vacancies)} вакансий содержат хотя бы один твой навык`}
+                      >
+                        <div className="h-4 overflow-hidden rounded-full bg-[color:var(--border-strong)]">
+                          <div
+                            className="h-full rounded-full bg-[color:var(--green)] transition-all duration-700"
+                            style={{ width: `${Math.min(skillGapResult.match_pct, 100)}%` }}
+                          />
+                        </div>
+                        <p className="mt-2 text-right text-sm font-semibold text-[color:var(--green)]">{skillGapResult.match_pct}%</p>
+                      </Panel>
+
+                      {skillGapResult.missing_skills.length > 0 && (
+                        <Panel
+                          eyebrow="Приоритет обучения"
+                          title="Что изучить дальше"
+                          description="Отсортировано по ROI: количество новых вакансий × средняя зарплата"
+                        >
+                          <div className="space-y-2">
+                            {skillGapResult.missing_skills.map((item: MissingSkill, index: number) => (
+                              <div key={item.skill} className="flex items-center gap-3 bg-[color:var(--bg-2)] px-4 py-3">
+                                <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[color:var(--surface-2)] text-xs font-bold text-[color:var(--text)]">
+                                  {index + 1}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-semibold text-[color:var(--text)]">{item.skill}</p>
+                                  <p className="text-xs text-[color:var(--text-dim)]">
+                                    {item.avg_salary_kzt
+                                      ? `ср. зарплата ${fmtSalary(item.avg_salary_kzt)}`
+                                      : "зарплата не указана"}
+                                  </p>
+                                </div>
+                                {item.extra_vacancies > 0 && (
+                                  <span className="flex-shrink-0 rounded-full bg-[rgba(164,228,123,0.12)] px-2.5 py-1 text-xs font-semibold text-[color:var(--green)]">
+                                    +{fmtInt(item.extra_vacancies)} вакансий
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </Panel>
+                      )}
+                    </>
+                  )}
+                  {!skillGapResult && !skillGapLoading && !skillGapError && (
+                    <div className="flex h-48 items-center justify-center border border-dashed border-[color:var(--border)] text-sm text-[color:var(--muted)]">
+                      Добавь навыки и нажми «Проанализировать»
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "ai" && (
+              <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
+                <Panel
+                  eyebrow="AI чат"
+                  title={`AI сейчас работает в режиме ${source.toUpperCase()}`}
+                  description="Это важно: модель теперь отвечает в контексте выбранного источника, а не всегда как будто это только HH."
+                >
+                  <form onSubmit={askAI} className="space-y-4">
+                    <textarea
+                      value={question}
+                      onChange={(event) => setQuestion(event.target.value)}
+                      placeholder="Например: чем Telegram рынок отличается от HH по Python-вакансиям?"
+                      className="min-h-36 w-full border border-[color:var(--border)] bg-[color:var(--bg-2)] px-4 py-4 text-sm text-[color:var(--text)] outline-none transition focus:border-[color:var(--border-strong)]"
+                    />
+                    <button
+                      type="submit"
+                      disabled={chatLoading || !question.trim()}
+                      className="rounded-full bg-[color:var(--bg)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {chatLoading ? "AI анализирует..." : "Спросить AI"}
+                    </button>
+                  </form>
+
+                  <div className="mt-6">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--muted)]">Подсказки для старта</p>
+                    <div className="mt-3 space-y-2">
+                      {chatExamples[source].map((example) => (
+                        <button
+                          key={example}
+                          onClick={() => setQuestion(example)}
+                          className="block w-full rounded-2xl bg-[color:var(--bg-2)] px-4 py-3 text-left text-sm text-[color:var(--text)] transition hover:bg-[color:var(--border-strong)]"
+                        >
+                          {example}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </Panel>
+
+                <div className="space-y-6">
+                  <Panel
+                    eyebrow="Ответ"
+                    title="Результат AI-анализа"
+                    description="Ответ и график теперь синхронизированы с выбранным источником."
+                  >
+                    <div className="min-h-56 whitespace-pre-wrap bg-[color:var(--bg)] px-5 py-5 text-sm leading-7 text-[color:var(--text)]">
+                      {answer || (!chatLoading && "Здесь появится ответ после запроса.")}
+                      {chatLoading && !answer && (
+                        <span className="inline-block h-4 w-2 animate-pulse rounded bg-[color:var(--accent-bright)] align-middle" />
+                      )}
+                      <div ref={answerRef} />
+                    </div>
+                  </Panel>
+
+                  {chatChart && (
+                    <Panel
+                      eyebrow="Автографик"
+                      title={chartTitle(chatChart.type)}
+                      description="График строится на основе того же среза, что и ответ AI."
+                    >
+                      {chatChart.type === "skills" && <SkillsChart data={chatChart.data as Skill[]} />}
+                      {chatChart.type === "salaries" && <SalariesChart data={chatChart.data as Salary[]} />}
+                      {chatChart.type === "trends" && <TrendsChart data={chatChart.data as Trend[]} />}
+                      {chatChart.type === "regions" && <RegionsChart data={chatChart.data as RegionStat[]} />}
+                      {chatChart.type === "experience" && <MiniDistributionChart data={chatChart.data as LabeledCount[]} tone="#1d4ed8" />}
+                      {chatChart.type === "employment" && <MiniDistributionChart data={chatChart.data as LabeledCount[]} tone="#dc2626" />}
+                      {chatChart.type === "companies" && <CompaniesChart data={chatChart.data as CompanyStat[]} />}
+                      {chatChart.type === "salary_histogram" && <SalaryHistogramChart data={chatChart.data as SalaryBucket[]} />}
+                      {chatChart.type === "skill_compare" && <SkillCompareChart data={chatChart.data as SkillCompareItem[]} />}
+                      {chatChart.type === "generic_bar" && <GenericBarChart data={chatChart.data as { label: string; value: number }[]} />}
+                    </Panel>
+                  )}
+                </div>
+              </div>
+            )}
+          </main>
+        )}
+    </div>
+  );
+}
+
+function chartTitle(type: ChartPayload["type"]) {
+  if (type === "salaries") return "Зарплатный график";
+  if (type === "salary_histogram") return "Распределение зарплат";
+  if (type === "skill_compare") return "Сравнение навыков";
+  if (type === "generic_bar") return "Сравнительный график";
+  if (type === "trends") return "Динамика по времени";
+  if (type === "regions") return "Региональный срез";
+  if (type === "experience") return "Распределение по опыту";
+  if (type === "employment") return "Распределение по занятости";
+  if (type === "companies") return "Срез по компаниям";
+  return "Навыки";
+}
+
+function SourceMixCard({
+  data,
+  hh,
+  telegram,
+}: {
+  data: { name: string; value: number; fill: string }[];
+  hh: number;
+  telegram: number;
+}) {
+  return (
+    <div className="grid gap-5 md:grid-cols-[0.95fr_1.05fr]">
+      <div className="h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={data} dataKey="value" nameKey="name" innerRadius={62} outerRadius={92} paddingAngle={3}>
+              {data.map((entry) => (
+                <Cell key={entry.name} fill={entry.fill} />
+              ))}
+            </Pie>
+            <Tooltip formatter={(value) => fmtInt(Number(value ?? 0))} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="space-y-3">
+        <SourceSplitRow label="HH" value={hh} tone="teal" />
+        <SourceSplitRow label="Telegram" value={telegram} tone="amber" />
+        <div className="rounded-[22px] bg-[color:var(--bg-2)] p-4 text-sm leading-6 text-[color:var(--text-dim)]">
+          Общий split помогает быстро понять, насколько продукт всё ещё HH-centric и какой вес уже набрал Telegram-слой.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SourceSplitRow({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "teal" | "amber";
+}) {
+  const classes = tone === "teal" ? "bg-[color:var(--bg-2)] text-[color:var(--green)]" : "bg-[color:var(--bg-2)] text-[color:var(--accent)]";
+  return (
+    <div className={`rounded-[22px] ${classes} px-4 py-4`}>
+      <div className="text-xs font-semibold uppercase tracking-[0.22em]">{label}</div>
+      <div className="mt-2 text-2xl font-semibold">{fmtInt(value)}</div>
+    </div>
+  );
+}
+
+function SourceNarrativeCard({
+  title,
+  text,
+  accent,
+}: {
+  title: string;
+  text: string;
+  accent: "teal" | "amber" | "navy";
+}) {
+  const borderClass = {
+    teal: "border-[color:var(--green)] bg-[color:var(--bg-2)]",
+    amber: "border-[color:var(--accent-deep)] bg-[color:var(--bg-2)]",
+    navy: "border-blue-200 bg-[color:var(--bg-2)]",
+  }[accent];
+
+  return (
+    <div className={`rounded-[24px] border ${borderClass} p-5`}>
+      <h3 className="text-lg font-semibold text-[color:var(--text)]">{title}</h3>
+      <p className="mt-3 text-sm leading-6 text-[color:var(--text)]">{text}</p>
+    </div>
+  );
+}
+
+function SkillsChart({ data }: { data: Skill[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={420}>
+      <BarChart data={data} layout="vertical" margin={{ left: 60, right: 10 }}>
+        <CartesianGrid stroke="#e7e5e4" horizontal={false} />
+        <XAxis type="number" tick={tickStyle} axisLine={false} tickLine={false} />
+        <YAxis dataKey="skill" type="category" width={100} tick={tickStyle} axisLine={false} tickLine={false} interval={0} />
+        <Tooltip formatter={(value) => [fmtInt(Number(value ?? 0)), "Вакансий"]} />
+        <Bar dataKey="count" radius={[0, 10, 10, 0]} fill="#0f766e" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function SalariesChart({ data }: { data: Salary[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={Math.max(360, data.length * 52)}>
+      <BarChart data={data} layout="vertical" margin={{ left: 80, right: 16 }}>
+        <CartesianGrid stroke="#e7e5e4" horizontal={false} />
+        <XAxis
+          type="number"
+          tick={tickStyle}
+          axisLine={false}
+          tickLine={false}
+          tickFormatter={(v) => `${Math.round(v / 1000)}k`}
+        />
+        <YAxis
+          dataKey="skill"
+          type="category"
+          width={110}
+          tick={tickStyle}
+          axisLine={false}
+          tickLine={false}
+          interval={0}
+        />
+        <Tooltip
+          formatter={(value, name) => [
+            fmtSalary(Number(value ?? 0)),
+            name === "avg_salary_kzt" ? "Средняя" : "Медиана",
+          ]}
+          content={({ active, payload }) => {
+            if (!active || !payload?.length) return null;
+            const d = payload[0]?.payload as Salary;
+            return (
+              <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-xs shadow-lg">
+                <p className="mb-2 font-semibold text-[color:var(--text)]">{d.skill}</p>
+                <p className="text-[color:var(--accent)]">Средняя: {fmtSalary(d.avg_salary_kzt)}</p>
+                <p className="text-[color:var(--green)]">Медиана: {fmtSalary(d.median_salary_kzt)}</p>
+                <p className="mt-1 text-[color:var(--muted)]">Мин: {fmtSalary(d.min_salary_kzt)} · Макс: {fmtSalary(d.max_salary_kzt)}</p>
+                <p className="text-[color:var(--muted)]">Вакансий с зарплатой: {d.vacancy_count}</p>
+              </div>
+            );
+          }}
+        />
+        <Legend
+          formatter={(value) => (value === "avg_salary_kzt" ? "Средняя" : "Медиана")}
+          wrapperStyle={{ fontSize: 12, color: "#78716c" }}
+        />
+        <Bar dataKey="avg_salary_kzt" name="avg_salary_kzt" radius={[0, 6, 6, 0]} fill="#b45309" barSize={10} />
+        <Bar dataKey="median_salary_kzt" name="median_salary_kzt" radius={[0, 6, 6, 0]} fill="#0f766e" barSize={10} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function SalaryHistogramChart({ data }: { data: SalaryBucket[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={360}>
+      <BarChart data={data}>
+        <CartesianGrid stroke="#e7e5e4" strokeDasharray="3 3" />
+        <XAxis dataKey="bucket" tick={tickStyle} axisLine={false} tickLine={false} interval={0} angle={-12} textAnchor="end" height={64} />
+        <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
+        <Tooltip formatter={(value) => [fmtInt(Number(value ?? 0)), "Вакансий"]} />
+        <Bar dataKey="count" fill="#0f766e" radius={[8, 8, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function SkillCompareChart({ data }: { data: SkillCompareItem[] }) {
+  const trendRows = buildSkillCompareTrendRows(data);
+
+  return (
+    <div className="space-y-6">
+      <ResponsiveContainer width="100%" height={320}>
+        <BarChart data={data}>
+          <CartesianGrid stroke="#e7e5e4" strokeDasharray="3 3" />
+          <XAxis dataKey="skill" tick={tickStyle} axisLine={false} tickLine={false} />
+          <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
+          <Tooltip formatter={(value) => [fmtInt(Number(value ?? 0)), "Вакансий"]} />
+          <Bar dataKey="vacancy_count" fill="#0f766e" radius={[8, 8, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        {data.map((item) => (
+          <div key={item.skill} className="rounded-[22px] bg-[color:var(--bg-2)] p-4">
+            <div className="text-sm font-semibold text-[color:var(--text)]">{item.skill}</div>
+            <div className="mt-2 space-y-1 text-xs text-[color:var(--text-dim)]">
+              <div>Спрос: {fmtInt(item.vacancy_count)}</div>
+              <div>Средняя: {item.avg_salary_kzt ? fmtSalary(item.avg_salary_kzt) : "нет данных"}</div>
+              <div>Медиана: {item.median_salary_kzt ? fmtSalary(item.median_salary_kzt) : "нет данных"}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {trendRows.length > 0 && (
+        <ResponsiveContainer width="100%" height={280}>
+          <LineChart data={trendRows}>
+            <CartesianGrid stroke="#e7e5e4" strokeDasharray="3 3" />
+            <XAxis dataKey="month" tick={tickStyle} axisLine={false} tickLine={false} />
+            <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
+            <Tooltip formatter={(value) => [fmtInt(Number(value ?? 0)), "Вакансий"]} />
+            <Legend />
+            {data.map((item, index) => (
+              <Line
+                key={item.skill}
+                type="monotone"
+                dataKey={item.skill}
+                stroke={chartColors[index % chartColors.length] ?? "#0f766e"}
+                strokeWidth={3}
+                dot={{ r: 3 }}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+}
+
+function GenericBarChart({ data }: { data: { label: string; value: number }[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={Math.max(280, data.length * 44)}>
+      <BarChart data={data} layout="vertical" margin={{ left: 80, right: 16 }}>
+        <CartesianGrid stroke="#e7e5e4" horizontal={false} />
+        <XAxis type="number" tick={tickStyle} axisLine={false} tickLine={false} />
+        <YAxis dataKey="label" type="category" width={120} tick={tickStyle} axisLine={false} tickLine={false} interval={0} />
+        <Tooltip formatter={(value) => [fmtInt(Number(value ?? 0)), "Значение"]} />
+        <Bar dataKey="value" fill="#0f766e" radius={[0, 8, 8, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function buildSkillCompareTrendRows(data: SkillCompareItem[]) {
+  const byMonth = new Map<string, Record<string, string | number>>();
+
+  for (const item of data) {
+    for (const point of item.monthly_trend) {
+      const row = byMonth.get(point.month) ?? { month: point.month };
+      row[item.skill] = point.count;
+      byMonth.set(point.month, row);
+    }
+  }
+
+  return [...byMonth.values()].sort((a, b) => String(a.month).localeCompare(String(b.month)));
+}
+
+function TrendsChart({ data }: { data: Trend[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={360}>
+      <LineChart data={data} margin={{ left: 8, right: 16 }}>
+        <CartesianGrid stroke="#e7e5e4" strokeDasharray="3 3" />
+        <XAxis dataKey="month" tick={tickStyle} axisLine={false} tickLine={false} />
+        <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
+        <Tooltip formatter={(value) => [fmtInt(Number(value ?? 0)), "Вакансий"]} />
+        <Line type="monotone" dataKey="count" stroke="#1d4ed8" strokeWidth={3} dot={{ r: 4, fill: "#1d4ed8" }} />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+function TrendingSkillsList({
+  data,
+  selectedSkill,
+  onSelect,
+}: {
+  data: TrendingSkill[];
+  selectedSkill: string;
+  onSelect: (skill: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      {data.map((item) => (
+        <button
+          key={item.skill}
+          onClick={() => onSelect(item.skill)}
+          className={`flex w-full items-center justify-between gap-4 border px-4 py-3 text-left transition ${
+            selectedSkill === item.skill
+              ? "border-[color:var(--border-strong)] bg-[color:var(--bg)] text-white"
+              : "border-[color:var(--border)] bg-[color:var(--bg-2)] hover:border-[color:var(--border-strong)]"
+          }`}
+        >
+          <div>
+            <div className="text-sm font-semibold">{item.skill}</div>
+            <div className={`mt-1 text-xs ${selectedSkill === item.skill ? "text-[color:var(--text-dim)]" : "text-[color:var(--text-dim)]"}`}>
+              {item.category ?? "Без категории"} · сейчас {fmtInt(item.current_count)} · раньше {fmtInt(item.previous_count)}
+            </div>
+          </div>
+          <div className={`text-sm font-semibold ${item.delta >= 0 ? "text-[color:var(--green)]" : "text-[color:var(--red)]"}`}>
+            {item.delta >= 0 ? "+" : ""}
+            {item.delta} ({item.delta_pct.toFixed(1)}%)
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SkillCompareGrid({ data }: { data: SkillCompareItem[] }) {
+  if (!data.length) {
+    return <div className="rounded-[22px] bg-[color:var(--bg-2)] p-4 text-sm text-[color:var(--text-dim)]">Для compare пока недостаточно данных.</div>;
+  }
+
+  return (
+    <div className="grid gap-3 md:grid-cols-3">
+      {data.map((item) => (
+        <div key={item.skill} className="rounded-[24px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--muted)]">
+            {item.category ?? "Без категории"}
+          </div>
+          <div className="mt-2 text-xl font-semibold text-[color:var(--text)]">{item.skill}</div>
+          <div className="mt-3 space-y-1 text-sm text-[color:var(--text-dim)]">
+            <div>Вакансий: {fmtInt(item.vacancy_count)}</div>
+            <div>Средняя: {item.avg_salary_kzt ? fmtSalary(item.avg_salary_kzt) : "нет данных"}</div>
+            <div>Медиана: {item.median_salary_kzt ? fmtSalary(item.median_salary_kzt) : "нет данных"}</div>
+          </div>
+          <div className="mt-4 h-24">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={item.monthly_trend}>
+                <Line type="monotone" dataKey="count" stroke="#1d4ed8" strokeWidth={2} dot={false} />
+                <Tooltip formatter={(value) => [fmtInt(Number(value ?? 0)), "Вакансий"]} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SkillCardPanel({ card }: { card: ApiSkillCard }) {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Вакансий"
+          value={fmtInt(card.total_vacancies)}
+          detail={card.category ?? "Без категории"}
+          accent="teal"
+        />
+        <MetricCard
+          label="Средняя"
+          value={card.salary ? fmtSalary(card.salary.avg_salary_kzt) : "н/д"}
+          detail={card.salary ? `Медиана: ${fmtSalary(card.salary.median_salary_kzt)}` : "Нет зарплатных данных"}
+          accent="amber"
+        />
+        <MetricCard
+          label="Минимум"
+          value={card.salary ? fmtSalary(card.salary.min_salary_kzt) : "н/д"}
+          detail={card.salary ? `Максимум: ${fmtSalary(card.salary.max_salary_kzt)}` : "Нет зарплатных данных"}
+          accent="navy"
+        />
+        <MetricCard
+          label="Salary coverage"
+          value={card.salary ? fmtInt(card.salary.vacancy_count) : "0"}
+          detail="Вакансий с зарплатой"
+          accent="rose"
+        />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="rounded-[24px] bg-[color:var(--bg-2)] p-4">
+          <div className="mb-3 text-sm font-semibold text-[color:var(--text)]">Динамика по месяцам</div>
+          <TrendsChart data={card.monthly_trend} />
+        </div>
+        <div className="rounded-[24px] bg-[color:var(--bg-2)] p-4">
+          <div className="mb-3 text-sm font-semibold text-[color:var(--text)]">Связанные навыки</div>
+          <div className="flex flex-wrap gap-2">
+            {card.related_skills.map((item) => (
+              <div key={item.skill} className="rounded-full bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)] shadow-sm">
+                {item.skill} · {fmtInt(item.count)}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <SimpleStatList
+          title="Топ регионы"
+          rows={card.top_regions.map((item) => ({
+            label: item.region,
+            value: `${fmtInt(item.vacancy_count)} вакансий`,
+          }))}
+        />
+        <SimpleStatList
+          title="Топ компании"
+          rows={card.top_companies.map((item) => ({
+            label: item.company,
+            value: `${fmtInt(item.vacancy_count)} вакансий`,
+          }))}
+        />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <DistributionChart title="Опыт" data={card.experience_distribution} tone="#0f766e" />
+        <DistributionChart title="Занятость" data={card.employment_distribution} tone="#b45309" />
+      </div>
+    </div>
+  );
+}
+
+function SimpleStatList({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: { label: string; value: string }[];
+}) {
+  return (
+    <div className="rounded-[24px] bg-[color:var(--bg-2)] p-4">
+      <div className="mb-3 text-sm font-semibold text-[color:var(--text)]">{title}</div>
+      <div className="space-y-3">
+        {rows.map((row) => (
+          <div key={`${title}-${row.label}`} className="flex items-center justify-between gap-4 rounded-2xl bg-[color:var(--surface)] px-4 py-3">
+            <span className="text-sm text-[color:var(--text)]">{row.label}</span>
+            <span className="text-sm font-semibold text-[color:var(--text)]">{row.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function VacancyDetailPanel({ vacancy }: { vacancy: ApiVacancy | null }) {
+  if (!vacancy) {
+    return <div className="rounded-[24px] bg-[color:var(--bg-2)] p-6 text-sm text-[color:var(--text-dim)]">Выбери вакансию слева, чтобы увидеть детали.</div>;
+  }
+
+  return (
+    <div className="rounded-[28px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--muted)]">{vacancy.source}</div>
+          <h3 className="mt-2 text-2xl font-semibold text-[color:var(--text)]">{vacancy.title}</h3>
+          <p className="mt-2 text-sm text-[color:var(--text-dim)]">
+            {vacancy.company ?? "Компания не указана"} · {vacancy.area_name ?? "Регион не указан"}
+          </p>
+        </div>
+        <div className="rounded-full bg-[color:var(--bg-2)] px-3 py-1 text-xs font-semibold text-[color:var(--text-dim)]">
+          {vacancy.published_at ? new Date(vacancy.published_at).toLocaleDateString("ru-RU") : "Дата не указана"}
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-2">
+        <DetailBox label="Зарплата" value={formatVacancySalary(vacancy)} />
+        <DetailBox label="Опыт" value={formatExperience(vacancy.experience)} />
+        <DetailBox label="Занятость" value={formatEmployment(vacancy.employment)} />
+        <DetailBox label="Источник" value={vacancy.source === "hh" ? "hh.kz" : vacancy.tg_channel ? `Telegram · ${vacancy.tg_channel}` : "Telegram"} />
+      </div>
+
+      <div className="mt-5">
+        <div className="text-sm font-semibold text-[color:var(--text)]">Навыки</div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {(vacancy.skills ?? []).length ? (
+            vacancy.skills?.map((skill) => (
+              <span key={`${vacancy.id}-${skill}`} className="rounded-full bg-[color:var(--bg-2)] px-3 py-2 text-sm text-[color:var(--text)]">
+                {skill}
+              </span>
+            ))
+          ) : (
+            <span className="text-sm text-[color:var(--text-dim)]">Навыки не указаны</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[22px] bg-[color:var(--bg-2)] px-4 py-4">
+      <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--muted)]">{label}</div>
+      <div className="mt-2 text-sm text-[color:var(--text)]">{value}</div>
+    </div>
+  );
+}
+
+const EXPERIENCE_LABELS: Record<string, string> = {
+  noExperience: "Без опыта",
+  between1And3: "От 1 до 3 лет",
+  between3And6: "От 3 до 6 лет",
+  moreThan6: "Более 6 лет",
+};
+
+const EMPLOYMENT_LABELS: Record<string, string> = {
+  FULL: "Полная занятость",
+  PART: "Частичная занятость",
+  PROJECT: "Проектная работа",
+  FLY_IN_FLY_OUT: "Вахта",
+  SIDE_JOB: "Подработка",
+};
+
+function formatExperience(value: string | null | undefined): string {
+  if (!value) return "Не указан";
+  return EXPERIENCE_LABELS[value] ?? value;
+}
+
+function formatEmployment(value: string | null | undefined): string {
+  if (!value) return "Не указана";
+  return EMPLOYMENT_LABELS[value] ?? value;
+}
+
+function formatVacancySalary(vacancy: ApiVacancy) {
+  if (vacancy.salary_from && vacancy.salary_to) {
+    return `${fmtInt(vacancy.salary_from)}-${fmtInt(vacancy.salary_to)} ${vacancy.currency ?? ""}`.trim();
+  }
+  if (vacancy.salary_from) {
+    return `от ${fmtInt(vacancy.salary_from)} ${vacancy.currency ?? ""}`.trim();
+  }
+  if (vacancy.salary_to) {
+    return `до ${fmtInt(vacancy.salary_to)} ${vacancy.currency ?? ""}`.trim();
+  }
+  return "Зарплата не указана";
+}
+
+function RegionsChart({ data }: { data: RegionStat[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={420}>
+      <BarChart data={data.slice(0, 10)} layout="vertical" margin={{ left: 95, right: 10 }}>
+        <CartesianGrid stroke="#e7e5e4" horizontal={false} />
+        <XAxis type="number" tick={tickStyle} axisLine={false} tickLine={false} />
+        <YAxis dataKey="region" type="category" width={120} tick={tickStyle} axisLine={false} tickLine={false} interval={0} />
+        <Tooltip formatter={(value, name) => [fmtInt(Number(value ?? 0)), name as string]} />
+        <Legend />
+        <Bar dataKey="with_salary" stackId="regions" fill="#0f766e" radius={[0, 8, 8, 0]} name="С зарплатой" />
+        <Bar dataKey="without_salary" stackId="regions" fill="#7dd3c7" radius={[0, 8, 8, 0]} name="Без зарплаты" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function CompaniesChart({ data }: { data: CompanyStat[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={420}>
+      <BarChart data={data.slice(0, 10)} layout="vertical" margin={{ left: 100, right: 10 }}>
+        <CartesianGrid stroke="#e7e5e4" horizontal={false} />
+        <XAxis type="number" tick={tickStyle} axisLine={false} tickLine={false} />
+        <YAxis dataKey="company" type="category" width={135} tick={tickStyle} axisLine={false} tickLine={false} interval={0} />
+        <Tooltip formatter={(value, name) => [fmtInt(Number(value ?? 0)), name as string]} />
+        <Legend />
+        <Bar dataKey="with_salary" stackId="companies" fill="#7c3aed" radius={[0, 8, 8, 0]} name="С зарплатой" />
+        <Bar dataKey="without_salary" stackId="companies" fill="#d8b4fe" radius={[0, 8, 8, 0]} name="Без зарплаты" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function DistributionChart({
+  title,
+  data,
+  tone,
+}: {
+  title: string;
+  data: LabeledCount[];
+  tone: string;
+}) {
+  return (
+    <div>
+      <h3 className="mb-3 text-lg font-semibold text-[color:var(--text)]">{title}</h3>
+      <MiniDistributionChart data={data} tone={tone} />
+    </div>
+  );
+}
+
+function MiniDistributionChart({ data, tone }: { data: LabeledCount[]; tone: string }) {
+  return (
+    <ResponsiveContainer width="100%" height={240}>
+      <BarChart data={data}>
+        <CartesianGrid stroke="#e7e5e4" strokeDasharray="3 3" />
+        <XAxis dataKey="label" tick={tickStyle} axisLine={false} tickLine={false} interval={0} angle={-15} textAnchor="end" height={62} />
+        <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
+        <Tooltip formatter={(value) => [fmtInt(Number(value ?? 0)), "Вакансий"]} />
+        <Bar dataKey="count" fill={tone} radius={[8, 8, 0, 0]}>
+          {data.map((_, index) => (
+            <Cell key={index} fill={chartColors[index % chartColors.length] ?? tone} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+const tickStyle = { fill: "#57534e", fontSize: 12 };
