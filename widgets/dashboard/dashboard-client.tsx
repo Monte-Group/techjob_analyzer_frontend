@@ -63,6 +63,7 @@ import {
   type VacancySource,
 } from "@/lib/api";
 import { ActionButton, MetricCard, Panel } from "@/widgets/dashboard/primitives";
+import { EmptyState } from "@/widgets/dashboard/empty-state";
 
 interface ChartPayload {
   type: "skills" | "salaries" | "trends" | "regions" | "experience" | "employment" | "companies" | "salary_histogram" | "skill_compare" | "generic_bar";
@@ -841,22 +842,30 @@ export default function DashboardClient() {
                   </Panel>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {skillGroups.map((group) => (
-                    <div key={group.category} className="rounded-[24px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--muted)]">{group.category}</p>
-                      <h3 className="mt-2 text-lg font-semibold text-[color:var(--text)]">{group.label}</h3>
-                      <div className="mt-4 space-y-3">
-                        {group.items.map((item) => (
-                          <div key={`${group.category}-${item.skill}`} className="flex items-center justify-between gap-4 rounded-2xl bg-[color:var(--bg-2)] px-3 py-2">
-                            <span className="text-sm text-[color:var(--text)]">{item.skill}</span>
-                            <span className="text-sm font-semibold text-[color:var(--text)]">{item.count}</span>
-                          </div>
-                        ))}
+                {skillGroups.length === 0 ? (
+                  <EmptyState
+                    title="Нет данных по навыкам"
+                    description="Запустите парсер в админ-панели или попробуйте другой источник."
+                    hint={`Источник · ${source.toUpperCase()}`}
+                  />
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {skillGroups.map((group) => (
+                      <div key={group.category} className="rounded-[24px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5">
+                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--muted)]">{group.category}</p>
+                        <h3 className="mt-2 text-lg font-semibold text-[color:var(--text)]">{group.label}</h3>
+                        <div className="mt-4 space-y-3">
+                          {group.items.map((item) => (
+                            <div key={`${group.category}-${item.skill}`} className="flex items-center justify-between gap-4 rounded-2xl bg-[color:var(--bg-2)] px-3 py-2">
+                              <span className="text-sm text-[color:var(--text)]">{item.skill}</span>
+                              <span className="text-sm font-semibold text-[color:var(--text)]">{item.count}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
 
                 <Panel
                   eyebrow="Skill card"
@@ -1073,7 +1082,10 @@ export default function DashboardClient() {
                         ))}
 
                       {!vacanciesLoading && vacancies?.items.length === 0 && (
-                        <div className="rounded-[24px] bg-[color:var(--bg-2)] p-6 text-sm text-[color:var(--text-dim)]">По этим фильтрам вакансий не найдено.</div>
+                        <EmptyState
+                          title="Вакансий не найдено"
+                          description="Попробуй сменить навык, регион или убрать фильтр «только с зарплатой»."
+                        />
                       )}
 
                       {vacancies && vacancies.pages > 1 && (
@@ -1258,9 +1270,11 @@ export default function DashboardClient() {
                     </>
                   )}
                   {!salaryCalcResult && !salaryCalcLoading && !salaryCalcError && (
-                    <div className="flex h-48 items-center justify-center border border-dashed border-[color:var(--border)] text-sm text-[color:var(--muted)]">
-                      Введи навык и нажми «Рассчитать»
-                    </div>
+                    <EmptyState
+                      title="Калькулятор готов"
+                      description="Введи навык, опыт и регион — получишь медиану и распределение зарплат."
+                      hint="Рассчитать"
+                    />
                   )}
                 </div>
               </div>
@@ -1385,9 +1399,11 @@ export default function DashboardClient() {
                     </>
                   )}
                   {!skillGapResult && !skillGapLoading && !skillGapError && (
-                    <div className="flex h-48 items-center justify-center border border-dashed border-[color:var(--border)] text-sm text-[color:var(--muted)]">
-                      Добавь навыки и нажми «Проанализировать»
-                    </div>
+                    <EmptyState
+                      title="Скилл-гэп ждёт навыки"
+                      description="Добавь свои навыки и нажми «Проанализировать», чтобы увидеть покрытие рынка."
+                      hint="Добавить навык"
+                    />
                   )}
                 </div>
               </div>
@@ -1563,6 +1579,7 @@ function SourceNarrativeCard({
 }
 
 function SkillsChart({ data }: { data: Skill[] }) {
+  if (!data.length) return <EmptyState title="Нет данных по навыкам" description="Запусти парсер или попробуй другой источник." />;
   return (
     <ResponsiveContainer width="100%" height={420}>
       <BarChart data={data} layout="vertical" margin={{ left: 60, right: 10 }}>
@@ -1577,6 +1594,7 @@ function SkillsChart({ data }: { data: Skill[] }) {
 }
 
 function SalariesChart({ data }: { data: Salary[] }) {
+  if (!data.length) return <EmptyState title="Нет данных по зарплатам" description="Telegram редко даёт зарплатные вилки — попробуй HH-режим." />;
   return (
     <ResponsiveContainer width="100%" height={Math.max(360, data.length * 52)}>
       <BarChart data={data} layout="vertical" margin={{ left: 80, right: 16 }}>
@@ -1628,6 +1646,7 @@ function SalariesChart({ data }: { data: Salary[] }) {
 }
 
 function SalaryHistogramChart({ data }: { data: SalaryBucket[] }) {
+  if (!data.length) return <EmptyState title="Нет данных для гистограммы" description="Попробуй сменить источник или запустить парсер." />;
   return (
     <ResponsiveContainer width="100%" height={360}>
       <BarChart data={data}>
@@ -1642,6 +1661,7 @@ function SalaryHistogramChart({ data }: { data: SalaryBucket[] }) {
 }
 
 function SkillCompareChart({ data }: { data: SkillCompareItem[] }) {
+  if (!data.length) return <EmptyState title="Нечего сравнивать" description="AI пока не предложил навыки для compare." />;
   const trendRows = buildSkillCompareTrendRows(data);
 
   return (
@@ -1723,6 +1743,7 @@ function buildSkillCompareTrendRows(data: SkillCompareItem[]) {
 }
 
 function TrendsChart({ data }: { data: Trend[] }) {
+  if (!data.length) return <EmptyState title="Нет данных по трендам" description="Накопится после первых запусков парсера." />;
   return (
     <ResponsiveContainer width="100%" height={360}>
       <LineChart data={data} margin={{ left: 8, right: 16 }}>
@@ -1745,6 +1766,7 @@ function TrendingSkillsList({
   selectedSkill: string;
   onSelect: (skill: string) => void;
 }) {
+  if (!data.length) return <EmptyState title="Трендов пока нет" description="Появятся после первых регулярных запусков парсера." />;
   return (
     <div className="space-y-3">
       {data.map((item) => (
@@ -1992,6 +2014,7 @@ function formatVacancySalary(vacancy: ApiVacancy) {
 }
 
 function RegionsChart({ data }: { data: RegionStat[] }) {
+  if (!data.length) return <EmptyState title="Нет данных по регионам" description="После загрузки вакансий тут появится география." />;
   return (
     <ResponsiveContainer width="100%" height={420}>
       <BarChart data={data.slice(0, 10)} layout="vertical" margin={{ left: 95, right: 10 }}>
@@ -2008,6 +2031,7 @@ function RegionsChart({ data }: { data: RegionStat[] }) {
 }
 
 function CompaniesChart({ data }: { data: CompanyStat[] }) {
+  if (!data.length) return <EmptyState title="Нет данных по компаниям" description="Появится после первого парсинга." />;
   return (
     <ResponsiveContainer width="100%" height={420}>
       <BarChart data={data.slice(0, 10)} layout="vertical" margin={{ left: 100, right: 10 }}>
@@ -2041,6 +2065,7 @@ function DistributionChart({
 }
 
 function MiniDistributionChart({ data, tone }: { data: LabeledCount[]; tone: string }) {
+  if (!data.length) return <EmptyState title="Нет данных" />;
   return (
     <ResponsiveContainer width="100%" height={240}>
       <BarChart data={data}>
