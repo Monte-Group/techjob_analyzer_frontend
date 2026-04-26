@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Bar,
   BarChart,
@@ -70,17 +70,6 @@ interface ChartPayload {
 
 type TabId = "overview" | "skills" | "salaries" | "trends" | "market" | "ai" | "salary-calc" | "skill-gap";
 
-const tabs: { id: TabId; label: string }[] = [
-  { id: "overview", label: "Обзор" },
-  { id: "skills", label: "Навыки" },
-  { id: "salaries", label: "Зарплаты" },
-  { id: "trends", label: "Тренды" },
-  { id: "market", label: "Срез рынка" },
-  { id: "salary-calc", label: "Калькулятор" },
-  { id: "skill-gap", label: "Скилл-гэп" },
-  { id: "ai", label: "AI чат" },
-];
-
 const sourceOptions: { id: VacancySource; label: string; note: string }[] = [
   { id: "hh", label: "HH", note: "Основная аналитическая база" },
   { id: "telegram", label: "Telegram", note: "Живой неформальный слой рынка" },
@@ -125,10 +114,12 @@ const clientBackendBase = process.env.NEXT_PUBLIC_API_URL ?? "/api-proxy";
 
 export default function Dashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const answerRef = useRef<HTMLDivElement>(null);
 
   const [source, setSource] = useState<VacancySource>("hh");
-  const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const activeTab = ((searchParams.get("tab") as TabId) ?? "overview") as TabId;
+  const setActiveTab = (id: TabId) => router.push(`/dashboard?tab=${id}`);
   const [salaryCategory, setSalaryCategory] = useState("all");
 
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -591,8 +582,7 @@ export default function Dashboard() {
     : [];
 
   return (
-    <div className="relative min-h-screen text-[color:var(--text)] grain">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 pb-10 pt-6 sm:px-6 lg:px-8">
+    <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 pb-10 pt-6 sm:px-6 lg:px-8">
         <header className="rounded-[28px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5 md:p-7">
           <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
             <div className="max-w-3xl">
@@ -759,22 +749,6 @@ export default function Dashboard() {
             </div>
           )}
         </header>
-
-        <div className="mt-6 flex flex-wrap gap-2 border border-[color:var(--border)] bg-[color:var(--surface)] p-2">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`rounded-2xl px-4 py-2.5 text-sm font-medium transition ${
-                activeTab === tab.id
-                  ? "bg-[color:var(--bg)] text-white"
-                  : "text-[color:var(--text-dim)] hover:bg-[color:var(--bg-2)] hover:text-[color:var(--text)]"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
 
         {dashboardLoading ? (
           <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -1514,7 +1488,6 @@ export default function Dashboard() {
             )}
           </main>
         )}
-      </div>
     </div>
   );
 }
