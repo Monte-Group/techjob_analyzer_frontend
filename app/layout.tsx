@@ -27,6 +27,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 const SITE_URL = "https://jai.montegroup.kz";
+const GTM_ID = "GTM-M32Q5XNK";
 const SITE_TITLE = "J — AI · Аналитика IT-рынка Казахстана: зарплаты, скиллы, тренды";
 const SITE_DESC =
   "Аналитика IT-рынка Казахстана по данным hh.kz и Telegram: зарплаты, навыки, тренды и AI-разбор вакансий.";
@@ -145,6 +146,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <head>
+        <Script id="gtm-init" strategy="afterInteractive">{`
+          (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+          new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+          'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+          })(window,document,'script','dataLayer','${GTM_ID}');
+        `}</Script>
         <Script id="theme-init" strategy="beforeInteractive">{`
           (function () {
             try {
@@ -173,6 +181,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="antialiased">
+        <noscript>
+          <iframe
+            src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
+            height="0"
+            width="0"
+            style={{ display: "none", visibility: "hidden" }}
+          />
+        </noscript>
         {children}
         <ThemeToaster />
       </body>
