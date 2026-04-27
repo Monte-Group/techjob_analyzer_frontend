@@ -29,6 +29,7 @@ const plexMono = IBM_Plex_Mono({
 const SITE_URL = "https://jai.montegroup.kz";
 const GTM_ID = "GTM-M32Q5XNK";
 const GA_ID = "G-XKL8CB4T4S";
+const YM_ID = 108781404;
 const SITE_TITLE = "J — AI · Аналитика IT-рынка Казахстана: зарплаты, скиллы, тренды";
 const SITE_DESC =
   "Аналитика IT-рынка Казахстана по данным hh.kz и Telegram: зарплаты, навыки, тренды и AI-разбор вакансий.";
@@ -165,6 +166,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           gtag('js', new Date());
           gtag('config', '${GA_ID}');
         `}</Script>
+        <Script id="ym-init" strategy="afterInteractive">{`
+          (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+          m[i].l=1*new Date();
+          for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+          k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+          (window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js?id=${YM_ID}', 'ym');
+          ym(${YM_ID}, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", accurateTrackBounce:true, trackLinks:true});
+        `}</Script>
         <Script id="theme-init" strategy="beforeInteractive">{`
           (function () {
             try {
@@ -200,6 +209,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             width="0"
             style={{ display: "none", visibility: "hidden" }}
           />
+          <div>
+            <img
+              src={`https://mc.yandex.ru/watch/${YM_ID}`}
+              style={{ position: "absolute", left: "-9999px" }}
+              alt=""
+            />
+          </div>
         </noscript>
         {children}
         <ThemeToaster />
