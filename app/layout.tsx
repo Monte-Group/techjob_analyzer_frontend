@@ -28,6 +28,7 @@ const plexMono = IBM_Plex_Mono({
 
 const SITE_URL = "https://jai.montegroup.kz";
 const GTM_ID = "GTM-M32Q5XNK";
+const GA_ID = "G-XKL8CB4T4S";
 const SITE_TITLE = "J — AI · Аналитика IT-рынка Казахстана: зарплаты, скиллы, тренды";
 const SITE_DESC =
   "Аналитика IT-рынка Казахстана по данным hh.kz и Telegram: зарплаты, навыки, тренды и AI-разбор вакансий.";
@@ -152,6 +153,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
           })(window,document,'script','dataLayer','${GTM_ID}');
+        `}</Script>
+        <Script
+          id="ga-loader"
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="ga-init" strategy="afterInteractive">{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', '${GA_ID}');
         `}</Script>
         <Script id="theme-init" strategy="beforeInteractive">{`
           (function () {
