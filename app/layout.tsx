@@ -26,7 +26,7 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
-const SITE_URL = "https://j-ai.kz";
+const SITE_URL = "https://jai.montegroup.kz";
 const SITE_TITLE = "J — AI · Аналитика IT-рынка Казахстана: зарплаты, скиллы, тренды";
 const SITE_DESC =
   "Аналитика IT-рынка Казахстана по данным hh.kz и Telegram: зарплаты, навыки, тренды и AI-разбор вакансий.";

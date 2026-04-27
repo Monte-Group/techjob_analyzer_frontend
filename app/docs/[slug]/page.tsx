@@ -24,6 +24,7 @@ export async function generateMetadata({
     title: doc.title,
     description: doc.summary,
     alternates: { canonical: `/docs/${doc.slug}` },
+    robots: { index: false, follow: false },
     openGraph: {
       title: doc.title,
       description: doc.summary,
