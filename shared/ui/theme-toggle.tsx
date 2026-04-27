@@ -26,12 +26,13 @@ function subscribe(onStoreChange: () => void) {
   };
 
   media.addEventListener("change", onMedia);
-  window.addEventListener("themechange", onStoreChange as EventListener);
+  const onThemeChange = () => onStoreChange();
+  window.addEventListener("themechange", onThemeChange);
   window.addEventListener("storage", onStoreChange);
 
   return () => {
     media.removeEventListener("change", onMedia);
-    window.removeEventListener("themechange", onStoreChange as EventListener);
+    window.removeEventListener("themechange", onThemeChange);
     window.removeEventListener("storage", onStoreChange);
   };
 }

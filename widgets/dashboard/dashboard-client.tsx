@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -13,6 +13,7 @@ import {
   Tooltip,
 } from "recharts";
 
+import { fetchAIChat, fetchParseStream, readSSELines } from "@/lib/sse";
 import {
   getMarketPosition,
   exportAnalyticsCsv,
@@ -120,7 +121,6 @@ const chatExamples: Record<VacancySource, string[]> = {
 
 const fmtInt = (value: number) => new Intl.NumberFormat("ru-RU").format(value);
 const fmtSalary = (value: number) => `${new Intl.NumberFormat("ru-KZ", { maximumFractionDigits: 0 }).format(value)} ₸`;
-const clientBackendBase = process.env.NEXT_PUBLIC_API_URL ?? "/api-proxy";
 const experienceOptions = [
   { value: "", label: "Любой уровень" },
   { value: "noExperience", label: "Без опыта" },
@@ -222,52 +222,34 @@ export default function DashboardClient() {
     parseStreamRef.current = controller;
     setParseStreamStatus("Запущен...");
 
-    const base = process.env.NEXT_PUBLIC_API_URL ?? "/api-proxy";
-
     void (async () => {
       try {
-        const response = await fetch(`${base}/parser/runs/${runId}/stream`, {
-          signal: controller.signal,
-          credentials: "include",
-        });
+        const response = await fetchParseStream(runId, controller.signal);
+        if (!response.body) return;
 
-        const reader = response.body?.getReader();
-        if (!reader) return;
-
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() ?? "";
-
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            try {
-              const payload = JSON.parse(line.slice(6)) as { status: string; vacancies_fetched?: number; error?: string };
-              if (payload.status === "done") {
-                setParseStreamStatus(`Готово — загружено ${payload.vacancies_fetched ?? 0} вакансий`);
-                setActiveParseRunId(null);
-                void loadParseRuns();
-                return;
-              } else if (payload.status === "failed") {
-                setParseStreamStatus(`Ошибка: ${payload.error ?? "неизвестная"}`);
-                setActiveParseRunId(null);
-                void loadParseRuns();
-                return;
-              } else {
-                setParseStreamStatus("Идёт парсинг...");
-              }
-            } catch {
-              // ignore
+        for await (const line of readSSELines(response.body)) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const payload = JSON.parse(line.slice(6)) as { status: string; vacancies_fetched?: number; error?: string };
+            if (payload.status === "done") {
+              setParseStreamStatus(`Готово — загружено ${payload.vacancies_fetched ?? 0} вакансий`);
+              setActiveParseRunId(null);
+              void loadParseRuns();
+              return;
+            } else if (payload.status === "failed") {
+              setParseStreamStatus(`Ошибка: ${payload.error ?? "неизвестная"}`);
+              setActiveParseRunId(null);
+              void loadParseRuns();
+              return;
+            } else {
+              setParseStreamStatus("Идёт парсинг...");
             }
+          } catch {
+            // ignore malformed SSE payload
           }
         }
       } catch (err) {
-        if ((err as Error).name !== "AbortError") {
+        if (err instanceof Error && err.name !== "AbortError") {
           setParseStreamStatus("Соединение прервано");
           setActiveParseRunId(null);
         }
@@ -275,10 +257,8 @@ export default function DashboardClient() {
     })();
   }
 
-  async function handleTriggerParse(parseType: "hh" | "telegram") {
+  async function doTriggerParse(parseType: "hh" | "telegram") {
     const label = parseType === "hh" ? "HH" : "Telegram";
-    if (!confirm(`Запустить парсер ${label}? Это займёт несколько минут.`)) return;
-
     setParseTriggerError("");
     setParseTriggerLoading(parseType);
     try {
@@ -297,7 +277,16 @@ export default function DashboardClient() {
     }
   }
 
-  async function loadDashboard(nextSource: VacancySource) {
+  function handleTriggerParse(parseType: "hh" | "telegram") {
+    const label = parseType === "hh" ? "HH" : "Telegram";
+    toast(`Запустить парсер ${label}?`, {
+      description: "Это займёт несколько минут.",
+      action: { label: "Запустить", onClick: () => void doTriggerParse(parseType) },
+      cancel: { label: "Отмена", onClick: () => {} },
+    });
+  }
+
+  const loadDashboard = useCallback(async (nextSource: VacancySource) => {
     setDashboardLoading(true);
     try {
       const [
@@ -312,20 +301,19 @@ export default function DashboardClient() {
         companyRows,
         summaryRow,
         trendingRows,
-      ] =
-        await Promise.all([
-          getSkills(12, nextSource),
-          getSkillBreakdown(6, nextSource),
-          getSalaries(undefined, nextSource),
-          getSalaryHistogram(nextSource),
-          getTrends(nextSource),
-          getRegions(nextSource),
-          getExperience(undefined, nextSource),
-          getEmployment(undefined, nextSource),
-          getCompanies(nextSource),
-          getSummary(nextSource),
-          getTrendingSkills(8, nextSource),
-        ]);
+      ] = await Promise.all([
+        getSkills(12, nextSource),
+        getSkillBreakdown(6, nextSource),
+        getSalaries(undefined, nextSource),
+        getSalaryHistogram(nextSource),
+        getTrends(nextSource),
+        getRegions(nextSource),
+        getExperience(undefined, nextSource),
+        getEmployment(undefined, nextSource),
+        getCompanies(nextSource),
+        getSummary(nextSource),
+        getTrendingSkills(8, nextSource),
+      ]);
 
       setSkills(topSkills);
       setSkillGroups(grouped);
@@ -347,19 +335,22 @@ export default function DashboardClient() {
         setCompareRows([]);
       }
 
-      const fallbackSkill = topSkills[0]?.skill ?? trendingRows[0]?.skill ?? "";
-      if (fallbackSkill && !selectedSkill) {
-        setSelectedSkill(fallbackSkill);
-      }
+      setSelectedSkill((current) => current || (topSkills[0]?.skill ?? trendingRows[0]?.skill ?? ""));
+    } catch {
+      toast.error("Не удалось загрузить данные дашборда. Попробуй обновить страницу.");
     } finally {
       setDashboardLoading(false);
     }
-  }
+  }, []);
 
-  async function loadSalaries(nextSource: VacancySource, category: string) {
-    const rows = await getSalaries(category === "all" ? undefined : category, nextSource);
-    setSalaries(rows.slice(0, 12));
-  }
+  const loadSalaries = useCallback(async (nextSource: VacancySource, category: string) => {
+    try {
+      const rows = await getSalaries(category === "all" ? undefined : category, nextSource);
+      setSalaries(rows.slice(0, 12));
+    } catch {
+      toast.error("Не удалось загрузить зарплатные данные.");
+    }
+  }, []);
 
   async function loadMarketProfile() {
     setMarketPositionLoading(true);
@@ -410,14 +401,14 @@ export default function DashboardClient() {
     startTransition(() => {
       void loadDashboard(source);
     });
-  }, [authLoading, currentUser, source]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [authLoading, currentUser, source, loadDashboard]);
 
   useEffect(() => {
     if (authLoading || !currentUser) return;
     startTransition(() => {
       void loadSalaries(source, salaryCategory);
     });
-  }, [authLoading, currentUser, salaryCategory, source]);
+  }, [authLoading, currentUser, salaryCategory, source, loadSalaries]);
 
   useEffect(() => {
     if (authLoading || !currentUser) return;
@@ -548,47 +539,27 @@ export default function DashboardClient() {
     setChatLoading(true);
 
     try {
-      const response = await fetch(`${clientBackendBase}/ai/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ question, source }),
-        credentials: "include",
-      });
+      const response = await fetchAIChat({ question, source });
+      if (!response.body) return;
 
-      const reader = response.body?.getReader();
-      if (!reader) return;
-
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-
-        for (const line of lines) {
-          if (line.startsWith("chart: ")) {
-            try {
-              setChatChart(JSON.parse(line.slice(7)));
-            } catch {
-              // ignore invalid chart payload
-            }
-          } else if (line.startsWith("data: ")) {
-            const rawChunk = line.slice(6);
-            let chunk = rawChunk;
-            try {
-              chunk = JSON.parse(rawChunk) as string;
-            } catch {
-              chunk = rawChunk;
-            }
-            if (chunk === "[DONE]") continue;
-            setAnswer((prev) => prev + chunk);
-            setTimeout(() => answerRef.current?.scrollIntoView({ behavior: "smooth" }), 10);
+      for await (const line of readSSELines(response.body)) {
+        if (line.startsWith("chart: ")) {
+          try {
+            setChatChart(JSON.parse(line.slice(7)) as ChartPayload);
+          } catch {
+            // ignore invalid chart payload
           }
+        } else if (line.startsWith("data: ")) {
+          const rawChunk = line.slice(6);
+          let chunk = rawChunk;
+          try {
+            chunk = JSON.parse(rawChunk) as string;
+          } catch {
+            chunk = rawChunk;
+          }
+          if (chunk === "[DONE]") continue;
+          setAnswer((prev) => prev + chunk);
+          requestAnimationFrame(() => answerRef.current?.scrollIntoView({ behavior: "smooth" }));
         }
       }
     } finally {
@@ -707,11 +678,11 @@ export default function DashboardClient() {
               </div>
 
               {parseTriggerError && (
-                <div className="mt-3 bg-[rgba(255,130,114,0.08)] px-4 py-3 text-sm text-[color:var(--red)]">{parseTriggerError}</div>
+                <div className="mt-3 bg-[color-mix(in_srgb,var(--red)_8%,transparent)] px-4 py-3 text-sm text-[color:var(--red)]">{parseTriggerError}</div>
               )}
 
               {activeParseRunId && (
-                <div className="mt-3 flex items-center gap-3 rounded-2xl border border-[rgba(46,139,98,0.18)] bg-[rgba(46,139,98,0.08)] px-4 py-3 text-sm text-[color:var(--green)]">
+                <div className="mt-3 flex items-center gap-3 rounded-2xl border border-[color-mix(in_srgb,var(--green)_20%,transparent)] bg-[color-mix(in_srgb,var(--green)_8%,transparent)] px-4 py-3 text-sm text-[color:var(--green)]">
                   <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[color:var(--green)]" />
                   {parseStreamStatus}
                 </div>
@@ -729,18 +700,18 @@ export default function DashboardClient() {
                         key={run.id}
                         className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm ${
                           run.status === "done"
-                            ? "border-[rgba(46,139,98,0.16)] bg-[rgba(46,139,98,0.06)] text-[color:var(--text)]"
+                            ? "border-[color-mix(in_srgb,var(--green)_16%,transparent)] bg-[color-mix(in_srgb,var(--green)_6%,transparent)] text-[color:var(--text)]"
                             : run.status === "failed"
-                              ? "border-[rgba(205,91,80,0.16)] bg-[rgba(205,91,80,0.06)] text-[color:var(--text)]"
+                              ? "border-[color-mix(in_srgb,var(--red)_16%,transparent)] bg-[color-mix(in_srgb,var(--red)_6%,transparent)] text-[color:var(--text)]"
                               : "border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)]"
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <span className={`rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${
                             run.status === "done"
-                              ? "bg-[rgba(164,228,123,0.2)] text-[color:var(--green)]"
+                              ? "bg-[color-mix(in_srgb,var(--green)_20%,transparent)] text-[color:var(--green)]"
                               : run.status === "failed"
-                                ? "bg-[rgba(255,130,114,0.2)] text-[color:var(--red)]"
+                                ? "bg-[color-mix(in_srgb,var(--red)_20%,transparent)] text-[color:var(--red)]"
                                 : "bg-[color:var(--accent)] text-white"
                           }`}>
                             {run.status}
@@ -917,7 +888,7 @@ export default function DashboardClient() {
                   </div>
 
                   {skillCardLoading && <div className="rounded-[24px] bg-[color:var(--bg-2)] p-6 text-sm text-[color:var(--text-dim)]">Загружаю карточку навыка...</div>}
-                  {!skillCardLoading && skillCardError && <div className="rounded-[24px] bg-[rgba(255,130,114,0.08)] p-6 text-sm text-[color:var(--red)]">{skillCardError}</div>}
+                  {!skillCardLoading && skillCardError && <div className="rounded-[24px] bg-[color-mix(in_srgb,var(--red)_8%,transparent)] p-6 text-sm text-[color:var(--red)]">{skillCardError}</div>}
                   {!skillCardLoading && !skillCardError && skillCard && <SkillCardPanel card={skillCard} />}
                 </Panel>
               </div>
@@ -1229,7 +1200,7 @@ export default function DashboardClient() {
                     </button>
                   </form>
                   {salaryCalcError && (
-                    <div className="mt-4 bg-[rgba(255,130,114,0.08)] px-4 py-3 text-sm text-[color:var(--red)]">{salaryCalcError}</div>
+                    <div className="mt-4 bg-[color-mix(in_srgb,var(--red)_8%,transparent)] px-4 py-3 text-sm text-[color:var(--red)]">{salaryCalcError}</div>
                   )}
                 </Panel>
 
@@ -1460,7 +1431,7 @@ export default function DashboardClient() {
                     </div>
                   </form>
                   {profileError && (
-                    <div className="mt-4 bg-[rgba(255,130,114,0.08)] px-4 py-3 text-sm text-[color:var(--red)]">{profileError}</div>
+                    <div className="mt-4 bg-[color-mix(in_srgb,var(--red)_8%,transparent)] px-4 py-3 text-sm text-[color:var(--red)]">{profileError}</div>
                   )}
                 </Panel>
 
@@ -1566,7 +1537,7 @@ export default function DashboardClient() {
                                   </p>
                                 </div>
                                 {item.extra_vacancies > 0 && (
-                                  <span className="flex-shrink-0 rounded-full bg-[rgba(164,228,123,0.12)] px-2.5 py-1 text-xs font-semibold text-[color:var(--green)]">
+                                  <span className="flex-shrink-0 rounded-full bg-[color-mix(in_srgb,var(--green)_12%,transparent)] px-2.5 py-1 text-xs font-semibold text-[color:var(--green)]">
                                     +{fmtInt(item.extra_vacancies)} вакансий
                                   </span>
                                 )}
@@ -1720,8 +1691,8 @@ function SourceSplitRow({
   tone: "teal" | "amber";
 }) {
   const classes = tone === "teal"
-    ? "border-[rgba(46,139,98,0.16)] bg-[color:var(--surface)] text-[color:var(--green)]"
-    : "border-[rgba(124,108,255,0.16)] bg-[color:var(--surface)] text-[color:var(--accent)]";
+    ? "border-[color-mix(in_srgb,var(--green)_16%,transparent)] bg-[color:var(--surface)] text-[color:var(--green)]"
+    : "border-[color-mix(in_srgb,var(--accent)_16%,transparent)] bg-[color:var(--surface)] text-[color:var(--accent)]";
   return (
     <div className={`rounded-[22px] border ${classes} px-4 py-4 shadow-[0_16px_32px_-28px_rgba(50,32,118,0.22)]`}>
       <div className="text-xs font-semibold uppercase tracking-[0.22em]">{label}</div>
@@ -1740,9 +1711,9 @@ function SourceNarrativeCard({
   accent: "teal" | "amber" | "navy";
 }) {
   const borderClass = {
-    teal: "border-[rgba(46,139,98,0.2)] bg-[color:var(--surface)]",
-    amber: "border-[rgba(124,108,255,0.2)] bg-[color:var(--surface)]",
-    navy: "border-[rgba(111,125,255,0.2)] bg-[color:var(--surface)]",
+    teal: "border-[color-mix(in_srgb,var(--green)_20%,transparent)] bg-[color:var(--surface)]",
+    amber: "border-[color-mix(in_srgb,var(--accent)_20%,transparent)] bg-[color:var(--surface)]",
+    navy: "border-[color-mix(in_srgb,var(--blue)_20%,transparent)] bg-[color:var(--surface)]",
   }[accent];
 
   return (

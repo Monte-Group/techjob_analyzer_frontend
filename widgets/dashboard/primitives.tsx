@@ -72,7 +72,7 @@ export function ActionButton({
       </div>
       <div
         className="mt-1.5 text-[12px] leading-snug"
-        style={{ color: tone === "teal" ? "rgba(251,244,223,0.78)" : "var(--text-dim)" }}
+        style={{ color: tone === "teal" ? "color-mix(in srgb, var(--text) 78%, transparent)" : "var(--text-dim)" }}
       >
         {subtitle}
       </div>

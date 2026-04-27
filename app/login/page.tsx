@@ -1,12 +1,11 @@
-/* eslint-disable @next/next/no-html-link-for-pages */
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
 import { toast } from "sonner";
+import Link from "next/link";
 
-import { login, register } from "@/lib/api";
+import { login, register, isAxiosError } from "@/lib/api";
 import Nav from "@/widgets/nav";
 import SiteFooter from "@/widgets/site-footer";
 import { Arrow } from "@/shared/ui/Arrow";
@@ -55,7 +54,7 @@ export default function LoginPage() {
       }
     } catch (requestError) {
       let message: string;
-      if (axios.isAxiosError(requestError)) {
+      if (isAxiosError(requestError)) {
         const status = requestError.response?.status;
         if (mode === "login") {
           message = status === 401 ? "Неверный email или пароль" : "Ошибка входа";
@@ -82,7 +81,7 @@ export default function LoginPage() {
           className="absolute -right-40 -top-40 w-[700px] h-[700px] rounded-full pointer-events-none"
           style={{
             background:
-              "radial-gradient(circle at center, rgba(124,108,255,0.22), rgba(124,108,255,0) 60%)",
+              "radial-gradient(circle at center, color-mix(in srgb, var(--accent) 22%, transparent), transparent 60%)",
           }}
         />
 
@@ -279,8 +278,8 @@ export default function LoginPage() {
                         role="alert"
                         className="hairline px-4 py-3 font-mono text-[12px] text-[color:var(--red)]"
                         style={{
-                          background: "rgba(255,130,114,0.08)",
-                          borderColor: "rgba(255,130,114,0.35)",
+                          background: "color-mix(in srgb, var(--red) 8%, transparent)",
+                          borderColor: "color-mix(in srgb, var(--red) 35%, transparent)",
                         }}
                       >
                         ! {error}
@@ -302,19 +301,19 @@ export default function LoginPage() {
 
                     <p className="font-mono text-[11px] tracking-[0.06em] text-[color:var(--muted)] leading-relaxed">
                       Продолжая, ты соглашаешься с{" "}
-                      <a
+                      <Link
                         href="/docs/terms"
                         className="text-[color:var(--accent)] hover:text-[color:var(--accent-bright)]"
                       >
                         офертой
-                      </a>{" "}
+                      </Link>{" "}
                       и{" "}
-                      <a
+                      <Link
                         href="/docs/privacy"
                         className="text-[color:var(--accent)] hover:text-[color:var(--accent-bright)]"
                       >
                         политикой конфиденциальности
-                      </a>
+                      </Link>
                       .
                     </p>
                   </form>

@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "/api-proxy";
+export { isAxiosError } from "axios";
+
+import { API_BASE as BASE } from "./config";
 
 const api = axios.create({ baseURL: BASE, withCredentials: true });
 
@@ -193,67 +195,67 @@ export async function register(email: string, password: string) {
 }
 
 export async function getSkills(limit = 20, source: VacancySource = "all") {
-  const { data } = await api.get(`/analytics/skills?limit=${limit}&source=${source}`);
-  return data as SkillCount[];
+  const { data } = await api.get<SkillCount[]>(`/analytics/skills?limit=${limit}&source=${source}`);
+  return data;
 }
 
 export async function getSkillBreakdown(limitPerCategory = 8, source: VacancySource = "all") {
-  const { data } = await api.get(`/analytics/skills-breakdown?limit_per_category=${limitPerCategory}&source=${source}`);
-  return data as SkillGroup[];
+  const { data } = await api.get<SkillGroup[]>(`/analytics/skills-breakdown?limit_per_category=${limitPerCategory}&source=${source}`);
+  return data;
 }
 
 export async function getSalaries(category?: string, source: VacancySource = "all") {
   const suffix = toQuery({ source, category });
-  const { data } = await api.get(`/analytics/salaries${suffix}`);
-  return data as SalaryRow[];
+  const { data } = await api.get<SalaryRow[]>(`/analytics/salaries${suffix}`);
+  return data;
 }
 
 export async function getSalaryHistogram(source: VacancySource = "all") {
-  const { data } = await api.get(`/analytics/salary-histogram?source=${source}`);
-  return data as SalaryBucket[];
+  const { data } = await api.get<SalaryBucket[]>(`/analytics/salary-histogram?source=${source}`);
+  return data;
 }
 
 export async function getTrends(source: VacancySource = "all", skill?: string) {
   const q = new URLSearchParams({ source });
   if (skill) q.set("skill", skill);
-  const { data } = await api.get(`/analytics/trends?${q}`);
-  return data as MonthlyTrend[];
+  const { data } = await api.get<MonthlyTrend[]>(`/analytics/trends?${q}`);
+  return data;
 }
 
 export async function getRegions(source: VacancySource = "all") {
-  const { data } = await api.get(`/analytics/regions?source=${source}`);
-  return data as RegionStat[];
+  const { data } = await api.get<RegionStat[]>(`/analytics/regions?source=${source}`);
+  return data;
 }
 
 export async function getExperience(region?: string, source: VacancySource = "all") {
-  const { data } = await api.get(`/analytics/experience${toQuery({ region, source })}`);
-  return data as LabeledCount[];
+  const { data } = await api.get<LabeledCount[]>(`/analytics/experience${toQuery({ region, source })}`);
+  return data;
 }
 
 export async function getEmployment(region?: string, source: VacancySource = "all") {
-  const { data } = await api.get(`/analytics/employment${toQuery({ region, source })}`);
-  return data as LabeledCount[];
+  const { data } = await api.get<LabeledCount[]>(`/analytics/employment${toQuery({ region, source })}`);
+  return data;
 }
 
 export async function getCompanies(source: VacancySource = "all") {
-  const { data } = await api.get(`/analytics/companies?source=${source}`);
-  return data as CompanyStat[];
+  const { data } = await api.get<CompanyStat[]>(`/analytics/companies?source=${source}`);
+  return data;
 }
 
 export async function getSkillsCompare(skills: string[], source: VacancySource = "all") {
   const query = new URLSearchParams({ skills: skills.join(","), source });
-  const { data } = await api.get(`/analytics/skills/compare?${query.toString()}`);
-  return data as SkillCompareItem[];
+  const { data } = await api.get<SkillCompareItem[]>(`/analytics/skills/compare?${query.toString()}`);
+  return data;
 }
 
 export async function getTrendingSkills(limit = 12, source: VacancySource = "all") {
-  const { data } = await api.get(`/analytics/skills/trending?limit=${limit}&source=${source}`);
-  return data as TrendingSkill[];
+  const { data } = await api.get<TrendingSkill[]>(`/analytics/skills/trending?limit=${limit}&source=${source}`);
+  return data;
 }
 
 export async function getSkillCard(skill: string, source: VacancySource = "all") {
-  const { data } = await api.get(`/analytics/skill/${encodeURIComponent(skill)}?source=${source}`);
-  return data as SkillCard;
+  const { data } = await api.get<SkillCard>(`/analytics/skill/${encodeURIComponent(skill)}?source=${source}`);
+  return data;
 }
 
 export async function exportAnalyticsCsv(
@@ -269,15 +271,15 @@ export async function exportAnalyticsCsv(
   if (params.experience) query.set("experience", params.experience);
   if (params.employment) query.set("employment", params.employment);
 
-  const { data } = await api.get(`/analytics/export.csv?${query.toString()}`, {
+  const { data } = await api.get<Blob>(`/analytics/export.csv?${query.toString()}`, {
     responseType: "blob",
   });
-  return data as Blob;
+  return data;
 }
 
 export async function getSummary(source: VacancySource = "all") {
-  const { data } = await api.get(`/analytics/summary?source=${source}`);
-  return data as Summary;
+  const { data } = await api.get<Summary>(`/analytics/summary?source=${source}`);
+  return data;
 }
 
 export async function listVacancies(params: VacancyQuery = {}) {
@@ -295,13 +297,13 @@ export async function listVacancies(params: VacancyQuery = {}) {
   if (typeof params.with_salary === "boolean") query.set("with_salary", String(params.with_salary));
 
   const suffix = query.toString();
-  const { data } = await api.get(`/vacancies${suffix ? `?${suffix}` : ""}`);
-  return data as Page<Vacancy>;
+  const { data } = await api.get<Page<Vacancy>>(`/vacancies${suffix ? `?${suffix}` : ""}`);
+  return data;
 }
 
 export async function getVacancy(vacancyId: string) {
-  const { data } = await api.get(`/vacancies/${vacancyId}`);
-  return data as Vacancy;
+  const { data } = await api.get<Vacancy>(`/vacancies/${vacancyId}`);
+  return data;
 }
 
 export interface CurrentUser {
@@ -311,8 +313,8 @@ export interface CurrentUser {
 }
 
 export async function getMe(): Promise<CurrentUser> {
-  const { data } = await api.get("/auth/me");
-  return data as CurrentUser;
+  const { data } = await api.get<CurrentUser>("/auth/me");
+  return data;
 }
 
 export interface ParseRun {
@@ -332,13 +334,13 @@ export interface TriggerResponse {
 }
 
 export async function triggerParse(parseType: "hh" | "telegram"): Promise<TriggerResponse> {
-  const { data } = await api.post(`/parser/trigger/${parseType}`);
-  return data as TriggerResponse;
+  const { data } = await api.post<TriggerResponse>(`/parser/trigger/${parseType}`);
+  return data;
 }
 
 export async function listParseRuns(): Promise<ParseRun[]> {
-  const { data } = await api.get("/parser/runs");
-  return data as ParseRun[];
+  const { data } = await api.get<ParseRun[]>("/parser/runs");
+  return data;
 }
 
 export async function logout(): Promise<void> {
@@ -376,8 +378,8 @@ export async function getSalaryCalc(params: {
   if (params.experience) query.set("experience", params.experience);
   if (params.region) query.set("region", params.region);
   if (params.source) query.set("source", params.source);
-  const { data } = await api.get(`/analytics/salary-calc?${query}`);
-  return data as SalaryCalcResult | null;
+  const { data } = await api.get<SalaryCalcResult | null>(`/analytics/salary-calc?${query}`);
+  return data;
 }
 
 // Skill Gap Analyzer
@@ -398,8 +400,8 @@ export interface SkillGapResult {
 
 export async function getSkillGap(skills: string[], source?: string): Promise<SkillGapResult> {
   const query = source ? `?source=${source}` : "";
-  const { data } = await api.post(`/analytics/skill-gap${query}`, skills);
-  return data as SkillGapResult;
+  const { data } = await api.post<SkillGapResult>(`/analytics/skill-gap${query}`, skills);
+  return data;
 }
 
 export interface UserProfile {
@@ -456,16 +458,16 @@ export interface MarketPosition {
 }
 
 export async function getProfile(): Promise<UserProfile> {
-  const { data } = await api.get("/me/profile");
-  return data as UserProfile;
+  const { data } = await api.get<UserProfile>("/me/profile");
+  return data;
 }
 
 export async function upsertProfile(profile: UserProfile): Promise<UserProfile> {
-  const { data } = await api.post("/me/profile", profile);
-  return data as UserProfile;
+  const { data } = await api.post<UserProfile>("/me/profile", profile);
+  return data;
 }
 
 export async function getMarketPosition(): Promise<MarketPosition> {
-  const { data } = await api.get("/me/market-position");
-  return data as MarketPosition;
+  const { data } = await api.get<MarketPosition>("/me/market-position");
+  return data;
 }

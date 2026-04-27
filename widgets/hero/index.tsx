@@ -12,10 +12,8 @@ const TERMINAL_ROWS = [
 ];
 
 const SOURCES = [
-  { name: "HH.ru",         note: "95K+ вакансий" },
-  { name: "LinkedIn Jobs", note: "28K+ вакансий" },
-  { name: "Kaspi Careers", note: "direct feed" },
-  { name: "inDrive",       note: "direct feed" },
+  { name: "HH.kz",      note: "основной источник" },
+  { name: "Telegram",   note: "живые сигналы рынка" },
 ];
 
 export default function Hero() {
@@ -26,7 +24,7 @@ export default function Hero() {
         className="absolute -right-40 -top-40 w-[700px] h-[700px] rounded-full pointer-events-none"
         style={{
           background:
-            "radial-gradient(circle at center, rgba(124,108,255,0.22), rgba(124,108,255,0) 60%)",
+            "radial-gradient(circle at center, color-mix(in srgb, var(--accent) 22%, transparent), transparent 60%)",
         }}
       />
 

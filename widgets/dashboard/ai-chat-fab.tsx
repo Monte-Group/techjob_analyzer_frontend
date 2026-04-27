@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { fetchAIChat, readSSELines } from "@/lib/sse";
 import { AIChatChart, chartTitle, type ChartPayload } from "@/widgets/dashboard/ai-chat-charts";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "/api-proxy";
 
 type Source = "all" | "hh" | "telegram";
 
@@ -37,48 +36,26 @@ export function AiChatFab() {
     setLoading(true);
 
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      const response = await fetch(`${API_BASE}/ai/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ question, source }),
-        credentials: "include",
-      });
+      const response = await fetchAIChat({ question, source });
+      if (!response.body) return;
 
-      const reader = response.body?.getReader();
-      if (!reader) return;
-
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-
-        for (const line of lines) {
-          if (line.startsWith("chart: ")) {
-            try {
-              setChart(JSON.parse(line.slice(7)) as ChartPayload);
-            } catch {
-              // ignore invalid chart payload
-            }
-          } else if (line.startsWith("data: ")) {
-            const raw = line.slice(6);
-            let chunk = raw;
-            try {
-              chunk = JSON.parse(raw) as string;
-            } catch {
-              chunk = raw;
-            }
-            if (chunk === "[DONE]") continue;
-            setAnswer((prev) => prev + chunk);
+      for await (const line of readSSELines(response.body)) {
+        if (line.startsWith("chart: ")) {
+          try {
+            setChart(JSON.parse(line.slice(7)) as ChartPayload);
+          } catch {
+            // ignore invalid chart payload
           }
+        } else if (line.startsWith("data: ")) {
+          const raw = line.slice(6);
+          let chunk = raw;
+          try {
+            chunk = JSON.parse(raw) as string;
+          } catch {
+            chunk = raw;
+          }
+          if (chunk === "[DONE]") continue;
+          setAnswer((prev) => prev + chunk);
         }
       }
     } finally {
