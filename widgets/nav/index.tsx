@@ -78,12 +78,6 @@ export default function Nav() {
             Данные
           </a>
           <a
-            href="#pricing"
-            className="hover:text-[color:var(--text)] transition-colors"
-          >
-            Цены
-          </a>
-          <a
             href="#faq"
             className="hover:text-[color:var(--text)] transition-colors"
           >

@@ -7,7 +7,6 @@ import FeaturesGrid from "@/widgets/features-grid";
 import SkillsLeaderboard from "@/widgets/skills-leaderboard";
 import DemandTrend from "@/widgets/demand-trend";
 import Personas from "@/widgets/personas";
-import Pricing from "@/widgets/pricing";
 import FaqSection from "@/widgets/faq-section";
 import FinalCta from "@/widgets/final-cta";
 import SiteFooter from "@/widgets/site-footer";
@@ -24,7 +23,6 @@ export default function LandingView() {
       <SkillsLeaderboard />
       <DemandTrend />
       <Personas />
-      <Pricing />
       <FaqSection />
       <FinalCta />
       <SiteFooter />

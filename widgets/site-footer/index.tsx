@@ -9,7 +9,6 @@ const COLS: Col[] = [
     links: [
       ["Дашборд", "/login"],
       ["Возможности", "#features"],
-      ["Цены", "#pricing"],
       ["API", "#"],
       ["Changelog", "#"],
     ],
@@ -58,11 +57,6 @@ export default function SiteFooter() {
               Аналитика IT-рынка труда Казахстана. Парсим каждую вакансию.
               Считаем честно. Показываем всё.
             </p>
-            <div className="mt-6 font-mono text-[11px] text-[color:var(--muted)] space-y-1">
-              <div>ТОО «J — AI», БИН 250340012345</div>
-              <div>Алматы, пр. Достык 89</div>
-              <div>hello@j-ai.kz · +7&nbsp;(727)&nbsp;000&nbsp;01&nbsp;02</div>
-            </div>
           </div>
 
           {COLS.map((c) => (

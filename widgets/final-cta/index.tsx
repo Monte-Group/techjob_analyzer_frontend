@@ -20,16 +20,13 @@ export default function FinalCta() {
           Начни считать.
         </h2>
         <p className="mt-10 max-w-[580px] mx-auto text-[17px] text-[color:var(--text-dim)] leading-relaxed">
-          Первые 14 дней Pro — бесплатно. Без карты. Если не зайдёт —
-          возвращаешься на Free, данные остаются.
+          Бесплатно и без карты. Аналитика IT-рынка труда Казахстана —
+          в одном дашборде.
         </p>
         <div className="mt-12 flex flex-wrap items-center justify-center gap-3">
           <Link href="/login" className="btn-primary">
             Открыть дашборд <Arrow />
           </Link>
-          <a href="#pricing" className="btn-ghost">
-            Сравнить тарифы
-          </a>
         </div>
       </div>
     </section>

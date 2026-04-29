@@ -82,7 +82,7 @@ export default function Hero() {
               </Link>
               <a href="#live" className="btn-ghost">Смотреть&nbsp;данные</a>
               <span className="pl-2 font-mono text-[11px] tracking-[0.12em] uppercase text-[color:var(--muted)]">
-                14&nbsp;дней&nbsp;Pro — бесплатно
+                Бесплатно · без&nbsp;карты
               </span>
             </div>
 
